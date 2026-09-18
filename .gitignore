@@ -13,3 +13,5 @@ tmp/
 .vercel/
 
 .vercel
+playwright-report/
+test-results/

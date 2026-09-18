@@ -9,10 +9,19 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from .finance import demo_sales, summarize, simulate
 from .report import report_pdf
+from .workspace import router as workspace_router
+from .observability import request_log
 
 app = FastAPI(title='Lucra API', version='1.0.0', docs_url='/api/docs', redoc_url='/api/redoc', openapi_url='/api/openapi.json')
-app.add_middleware(CORSMiddleware, allow_origins=['http://localhost:5173','http://127.0.0.1:5173'], allow_methods=['GET','POST'], allow_headers=['Content-Type'])
+app.middleware('http')(request_log)
+app.add_middleware(CORSMiddleware, allow_origins=['http://localhost:5173','http://127.0.0.1:5173'], allow_methods=['GET','POST','PATCH'], allow_headers=['Content-Type','Authorization'])
 sales = demo_sales()
+app.include_router(workspace_router)
+
+@app.get('/api/config')
+def configuration():
+    url = os.getenv('NEON_AUTH_URL','')
+    return {'configured':bool(url and os.getenv('DATABASE_URL')),'neon_auth_url':url}
 
 class Simulation(BaseModel):
     price: Decimal = Field(gt=0, le=10000000, max_digits=12, decimal_places=2)
@@ -25,7 +34,22 @@ class Simulation(BaseModel):
 
 @app.get('/api/health')
 def health():
-    return {'status':'ok','mode':'demo'}
+    return {'status':'ok','mode':'neon' if os.getenv('DATABASE_URL') else 'demo'}
+
+@app.get('/api/ready')
+def readiness():
+    if not os.getenv('DATABASE_URL'):
+        return {'status':'ok','mode':'demo'}
+    import psycopg
+    from fastapi.responses import JSONResponse
+    try:
+        with psycopg.connect(os.environ['DATABASE_URL'],connect_timeout=5) as conn:
+            applied={r[0] for r in conn.execute('select name from public.lucra_migrations').fetchall()}
+        if not {'001_initial.sql','002_workspace.sql','003_inventory_payables.sql'}<=applied:
+            return JSONResponse({'status':'unavailable'},status_code=503)
+        return {'status':'ok','mode':'neon'}
+    except psycopg.Error:
+        return JSONResponse({'status':'unavailable'},status_code=503)
 
 @app.get('/api/dashboard')
 def dashboard(period: Literal['daily','weekly','monthly']='monthly', anchor: date=date(2026,8,31)):

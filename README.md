@@ -8,7 +8,7 @@ O Lucra organiza vendas, custos e taxas para ajudar o empresário a identificar 
 
 **[Acessar demonstração](https://dataexpert-eight.vercel.app)** · **[Repositório](https://github.com/Matheus-27mm/data_expert)** · **[Documentação da API](https://dataexpert-eight.vercel.app/api/docs)**
 
-> **Estado atual: MVP demonstrativo.** A aplicação utiliza empresa e vendas fictícias, com cálculos funcionais e exportação de PDF. A estrutura para Supabase está preparada, mas autenticação, persistência de dados reais e importação de vendas ainda não estão integradas.
+> **Demonstração e área autenticada.** O modo demonstrativo funciona sem credenciais. A área da empresa usa Neon PostgreSQL e Neon Auth e exige configurar o ambiente e aplicar as migrações. A conexão com o projeto remoto deve ser validada antes de cadastrar dados reais.
 
 ## Sumário
 
@@ -23,12 +23,12 @@ O Lucra organiza vendas, custos e taxas para ajudar o empresário a identificar 
 - [9. Regras de cálculo](#9-regras-de-cálculo)
 - [10. Referência da API](#10-referência-da-api)
 - [11. Relatórios em PDF](#11-relatórios-em-pdf)
-- [12. Supabase e modelo de dados](#12-supabase-e-modelo-de-dados)
+- [12. Neon e modelo de dados](#12-neon-e-modelo-de-dados)
 - [13. Publicação na Vercel](#13-publicação-na-vercel)
 - [14. Testes e integração contínua](#14-testes-e-integração-contínua)
 - [15. Fluxo de colaboração](#15-fluxo-de-colaboração)
 - [16. Solução de problemas](#16-solução-de-problemas)
-- [17. Limitações e próximos passos](#17-limitações-e-próximos-passos)
+- [17. Operação e configuração dos serviços](#17-operação-e-configuração-dos-serviços)
 
 ## 1. Visão do produto
 
@@ -54,7 +54,7 @@ Na demonstração mensal, uma estimativa de **R$ 45.000,00** se transforma em **
 | Deduções | Impostos, cartão/antecipação e comissões | Implementado |
 | Produtos e margens | Busca por nome ou categoria; ordenação por unidades vendidas | Implementado |
 | Itens no prejuízo | Destaque para grupos de produtos com resultado negativo | Implementado |
-| Cascata | Exemplo de uma venda de R$ 100 que deixa R$ 8 | Implementado; exemplo fixo |
+| Cascata | Receita e deduções calculadas com os dados do período | Implementado |
 | Simulador | Preço, CMV, parcelas e taxas editáveis, com cálculo pela API | Implementado |
 | Filtros | Dia, semana ou mês, definidos por uma data de referência | Implementado |
 | Relatórios | Download de PDF com o período selecionado | Implementado |
@@ -63,9 +63,13 @@ Na demonstração mensal, uma estimativa de **R$ 45.000,00** se transforma em **
 | Docker | Imagem com frontend e backend, healthcheck e Compose | Implementado |
 | Vercel | Frontend estático e API Python no mesmo domínio | Configurado |
 | GitHub Actions | Build frontend, testes backend e verificação Docker | Configurado |
-| Supabase | Migração com RLS e adaptador de leitura | Preparado; fora do fluxo atual |
-| Login e dados reais | Autenticação, autorização e persistência | Pendente |
-| Importação e cadastro | Upload de CSV e edição de vendas/produtos | Pendente |
+| Neon | PostgreSQL, login e isolamento por empresa | Exige configuração do projeto |
+| Login e dados reais | Neon Auth, seleção de empresa e persistência | Implementado; contas e domínios configurados no Neon |
+| Importação e cadastro | CSV com prévia, duplicidades e confirmação atômica; cadastros financeiros | Implementado |
+| Estoque | Entradas, saídas, saldo por produto e bloqueio de saldo negativo | Implementado |
+| Contas a pagar | Vencimentos, pagamentos parciais e saldo pendente | Implementado |
+| Extrato CSV | Recebimentos vinculados por identificador de venda | Implementado |
+| Operação | Logs com request ID e endpoint de prontidão | Implementado |
 
 As telas compartilham o período selecionado. O simulador é independente: alterar suas taxas não modifica as vendas fictícias, os indicadores ou o PDF.
 
@@ -79,9 +83,10 @@ As telas compartilham o período selecionado. O simulador é independente: alter
 | API | Python + FastAPI + Pydantic | Rotas HTTP e validação de entrada |
 | Análise | pandas | Filtros, agrupamentos e agregações |
 | PDF | ReportLab | Geração do relatório no backend |
-| Integração HTTP | HTTPX | Adaptador Supabase e testes da API |
+| Acesso ao banco | psycopg 3 | SQL parametrizado e transações PostgreSQL |
+| Autenticação | Neon Auth + PyJWT | Login e validação de assinatura, emissor, destinatário e expiração |
 | Testes | pytest | Verificação de cálculos e endpoints |
-| Banco previsto | Supabase/PostgreSQL | Empresas e vendas com políticas de acesso |
+| Banco | Neon/PostgreSQL | Dados persistidos com Row Level Security |
 | Containers | Docker + Docker Compose | Execução do sistema completo |
 | Entrega | GitHub Actions + Vercel | Validação automatizada e publicação |
 
@@ -95,7 +100,8 @@ flowchart LR
     F --> D[Dados fictícios em memória]
     A --> P[ReportLab]
     P -->|Download| PDF[Relatório PDF]
-    A -. integração futura .-> S[Supabase Auth + PostgreSQL / RLS]
+    R --> N[Neon Auth]
+    A --> S[Neon PostgreSQL / RLS]
 ```
 
 ### Fluxo dos dados
@@ -128,16 +134,16 @@ data_expert/
 │   ├── main.py                     # Rotas, modelos e arquivos estáticos
 │   ├── finance.py                  # Dados demonstrativos e cálculos
 │   ├── report.py                   # Composição do PDF
-│   ├── supabase_repository.py      # Adaptador de leitura futura
+│   ├── neon_repository.py          # PostgreSQL com identidade RLS por transação
 │   ├── test_finance.py             # Testes de cálculo e API
 │   └── requirements.txt            # Dependências de desenvolvimento/testes
 ├── src/
 │   ├── main.tsx                    # Telas, componentes e chamadas à API
 │   └── styles.css                  # Estilos e responsividade
-├── supabase/migrations/
+├── neon/migrations/
 │   └── 001_initial.sql             # Tabelas, índice e políticas RLS
 ├── .dockerignore                   # Exclusões do contexto Docker
-├── .env.example                    # Exemplo da configuração Supabase
+├── .env.example                    # Modelo de variáveis Neon
 ├── .gitignore                      # Exclusões do Git
 ├── .python-version                 # Versão Python para deploy
 ├── .vercelignore                   # Exclusões de upload
@@ -274,17 +280,31 @@ O frontend depende da API para os indicadores e o simulador. Para validar a apli
 
 ## 7. Configuração
 
-**Nenhuma variável de ambiente é necessária para executar a demonstração.**
+A demonstração não exige credenciais. Para a área da empresa, crie `.env` na raiz a partir de `.env.example`. O backend carrega esse arquivo automaticamente, sem sobrescrever variáveis já definidas no servidor. O arquivo `.env` fica fora do Git e da imagem Docker.
 
-| Variável | Uso | Estado |
+```env
+DATABASE_URL=postgresql://USUARIO:SENHA@HOST/neondb?sslmode=require&channel_binding=require
+NEON_AUTH_URL=https://SEU-ENDPOINT/neondb/auth
+```
+
+Copie a URL completa do banco em **Neon → Connect → Postgres database**. Use a conexão com pooling para a aplicação. Em **Connect → Auth**, copie a URL pública de autenticação. Não use os asteriscos da senha mascarada como senha real.
+
+| Variável | Finalidade | Exposição |
 | --- | --- | --- |
-| `STATIC_DIR` | Diretório do frontend compilado a servir pelo FastAPI | Definida no Docker como `/app/dist` |
-| `SUPABASE_URL` | URL do projeto utilizada pelo adaptador | Integração futura |
-| `SUPABASE_PUBLISHABLE_KEY` | Chave pública utilizada pelo adaptador | Integração futura |
+| `DATABASE_URL` | Conexão PostgreSQL, incluindo senha | Privada; somente servidor |
+| `NEON_AUTH_URL` | Endpoint público do Neon Auth | Pode ser enviado ao navegador |
+| `NEON_AUTH_JWKS_URL` | Opcional; padrão: Auth URL + `/.well-known/jwks.json` | URL das chaves públicas |
+| `NEON_AUTH_ISSUER` | Opcional; padrão: Auth URL | Emissor esperado do JWT |
+| `NEON_AUTH_AUDIENCE` | Opcional; padrão: origem da Auth URL, sem o caminho `/neondb/auth` | Destinatário esperado do JWT |
+| `STATIC_DIR` | Diretório do frontend compilado | `/app/dist` no Docker |
 
-O backend **não carrega um arquivo `.env` automaticamente**. O adaptador consulta `os.environ`; preencher `.env` não ativa a integração. Será necessário injetar variáveis no processo ou implementar seu carregamento quando o banco for conectado.
+Os parâmetros JWT devem corresponder à configuração do seu projeto; a API rejeita tokens com assinatura, emissor, destinatário ou validade incorretos. Nunca desative a verificação para contornar um erro de login.
 
-No desenvolvimento, CORS permite `http://localhost:5173` e `http://127.0.0.1:5173`, com métodos `GET` e `POST`. O frontend usa caminhos relativos `/api`. Se interface e API forem separadas em domínios diferentes, suas configurações precisarão ser revistas.
+Cadastre `http://localhost:5173`, `http://127.0.0.1:5173` e a origem publicada da aplicação nos domínios permitidos do Neon Auth. Adicione `http://127.0.0.1:8080` se utilizar Docker local. Configure também a verificação de e-mail no provedor.
+
+Não coloque `DATABASE_URL` em variáveis com prefixo `VITE_`. O endpoint `/api/config` retorna somente o estado da configuração e a URL pública de autenticação.
+
+No Docker, Compose lê `.env` e injeta suas variáveis no container. Na Vercel, cadastre as mesmas variáveis em **Settings → Environment Variables** e faça um novo deploy; o arquivo local não é enviado.
 
 ## 8. Dados demonstrativos
 
@@ -383,18 +403,7 @@ O equilíbrio é uma referência matemática: arredondamentos individuais podem 
 
 ### 9.4. Cascata
 
-O waterfall é um exemplo fixo, identificado como independente do período:
-
-```text
-R$ 100 de venda
-- R$ 60 de CMV
-- R$  6 de impostos
-- R$ 22 de cartão
-- R$  4 de comissão
-= R$  8 de resultado
-```
-
-Essas taxas não são as taxas padrão do simulador nem as taxas agregadas do mês demonstrativo.
+O waterfall usa os totais do período selecionado: receita, CMV, impostos, cartão e comissões. Na área da empresa, inclui despesas, devoluções e CMV recuperado. O último valor representa o resultado calculado, inclusive quando negativo. As taxas do simulador não alteram esse gráfico.
 
 ## 10. Referência da API
 
@@ -402,7 +411,7 @@ Essas taxas não são as taxas padrão do simulador nem as taxas agregadas do m�
 - ReDoc: `/api/redoc`.
 - OpenAPI: `/api/openapi.json`.
 
-As rotas atuais são públicas e trabalham apenas com dados fictícios. Não existe cadastro ou escrita de vendas pela API.
+As rotas demonstrativas desta seção são públicas e trabalham com dados fictícios. As rotas autenticadas de cadastro, importação e persistência estão documentadas na seção 12.
 
 | Método | Rota | Finalidade |
 | --- | --- | --- |
@@ -421,7 +430,7 @@ GET /api/health
 {"status":"ok","mode":"demo"}
 ```
 
-Confirma que a API responde; não testa Supabase, pois o banco não está conectado.
+Confirma que a API responde; não testa conectividade com o Neon nem o estado das migrações.
 
 ### 10.2. Dashboard
 
@@ -544,47 +553,73 @@ New-Item -ItemType Directory -Force output/pdf | Out-Null
 Invoke-WebRequest -Uri 'http://127.0.0.1:8080/api/reports/pdf?period=monthly&anchor=2026-08-31' -OutFile 'output/pdf/lucra-mensal-agosto-2026.pdf'
 ```
 
-## 12. Supabase e modelo de dados
+## 12. Neon e modelo de dados
 
-### Estado da integração
+### Preparação do banco
 
-O dashboard **ainda não consulta Supabase**. A migração e o adaptador estão preparados para a próxima etapa. Configurar credenciais não substitui automaticamente a base fictícia.
+Depois de preencher `.env` e instalar as dependências Python:
 
-### Tabelas
+```powershell
+python -m scripts.migrate
+```
 
-| Tabela | Campos | Finalidade |
+O comando aplica `neon/migrations/*.sql` em ordem, em uma transação, e registra nome e checksum em `lucra_migrations`. Execuções seguintes pulam migrações já aplicadas. Mudanças em arquivos aplicados são rejeitadas: crie uma nova migração. Use o proprietário do banco na preparação inicial, pois ela cria e concede a role `lucra_app`.
+
+### Modelo persistido
+
+| Tabela | Conteúdo |
+| --- | --- |
+| `companies` | Empresa e identificador do proprietário autenticado |
+| `products` | SKU, nome, categoria, custo, preço e estado ativo |
+| `sales` | Identificador externo único por empresa, data, quantidade, receita e deduções |
+| `expenses` | Despesas operacionais por data e categoria |
+| `adjustments` | Devoluções e estornos vinculados à venda original |
+| `settlements` | Recebimentos com referência bancária única por empresa |
+| `payment_terms` | Condições de parcelamento e taxas cadastradas |
+| `report_history` | Snapshot financeiro usado em cada PDF |
+| `report_schedules` | Periodicidade, destinatário confirmado e estado do agendamento |
+| `report_deliveries` | Controle de execução e prevenção de envios repetidos |
+| `stock_movements` | Entradas e saídas por produto, com referência única |
+| `bills` | Fornecedor, competência, vencimento e valor devido |
+| `bill_payments` | Baixas parciais ou totais de cada conta |
+
+Valores monetários são inteiros em centavos. Nas vendas, representam totais do registro, não valores unitários. A API recebe o token do Neon Auth, valida-o e abre uma transação com `SET LOCAL ROLE lucra_app`. A identidade validada fica em uma configuração local à transação, utilizada pelas políticas RLS. A role não tem login nem permissão para ignorar RLS. O navegador nunca acessa a credencial PostgreSQL.
+
+Cada empresa pertence a um usuário. As políticas limitam consultas e gravações às empresas desse proprietário. Não há compartilhamento por convites nesta versão. Vendas, despesas e ajustes são lançamentos imutáveis; produtos, condições e agendamentos permitem edição. O banco impede devoluções acumuladas acima da receita ou do CMV original.
+
+### Uso da área da empresa
+
+1. Abra `/#/workspace/dashboard` e crie sua conta ou faça login.
+2. Crie uma empresa e selecione-a no cabeçalho.
+3. Cadastre produtos e vendas ou importe um CSV pela tela **Importar CSV**.
+4. Registre despesas, recebimentos e devoluções para compor o resultado operacional.
+5. Consulte a conciliação e gere relatórios preservados no histórico.
+6. Em **Movimentar estoque**, registre o saldo inicial, entradas e saídas. O cadastro de uma venda não movimenta estoque automaticamente; registre a saída correspondente.
+7. Em **Cadastrar conta**, informe fornecedor, competência, vencimento e valor. A despesa é reconhecida automaticamente na competência; não cadastre a mesma despesa novamente.
+8. Em **Pagar conta**, registre cada baixa. Pagamentos não duplicam a despesa, e valores acima do saldo são bloqueados. **Contas a pagar** exibe pendências e vencimentos.
+9. Em **Importar recebimentos**, envie um CSV com `reference,external_id,received_on,amount`. Use uma linha por crédito identificado: vendas desconhecidas e referências repetidas bloqueiam o lote. A prévia sempre precede a confirmação.
+
+Estoque, contas e pagamentos são registros imutáveis. O estoque admite correção por movimento inverso. Não existe cancelamento/edição de contas já lançadas nesta versão; confira os valores antes de confirmar.
+
+O CSV utiliza vírgulas, datas `AAAA-MM-DD` e valores em reais com ponto decimal. Há limite de 1.000 vendas e 2 MB por envio. Baixe o modelo na interface, confira a prévia e confirme a importação. Um conflito cancela todo o lote. O identificador externo evita importar novamente a mesma venda.
+
+### API autenticada
+
+Todas estas rotas exigem `Authorization: Bearer <JWT>`:
+
+| Método | Rota sob `/api/workspace` | Uso |
 | --- | --- | --- |
-| `companies` | `id`, `name`, `owner_id` | Empresa vinculada a `auth.users` |
-| `sales` | `id`, `company_id`, `sold_on`, `product`, `category`, `quantity`, `revenue`, `cmv`, `tax`, `card`, `commission`, `installments` | Vendas e deduções |
+| GET / POST | `/companies` | Listar / criar empresas |
+| GET | `/{company_id}/dashboard` | Indicadores reais; parâmetros `period` e `anchor` |
+| GET / POST | `/{company_id}/records/{table}` | Consultar / cadastrar registros permitidos |
+| PATCH | `/{company_id}/records/{table}/{id}` | Editar produtos, condições ou agendamentos |
+| POST | `/{company_id}/imports/preview` | Validar CSV e detectar duplicidades |
+| POST | `/{company_id}/imports/confirm` | Gravar o lote em uma transação |
+| GET | `/{company_id}/reconciliation` | Comparar recebimentos e valores esperados |
+| GET / POST | `/{company_id}/reports` | Listar histórico / salvar snapshot |
+| GET | `/{company_id}/reports/{id}/pdf` | Baixar PDF do snapshot armazenado |
 
-Campos monetários são `bigint` em centavos e representam **totais do registro**, não valores unitários a multiplicar novamente por `quantity`. Valores financeiros não podem ser negativos; quantidade deve ser positiva e parcelas devem estar entre 1 e 12. Há um índice em `(company_id, sold_on)`.
-
-### Acesso e adaptador
-
-A migração habilita Row Level Security nas duas tabelas. As políticas restringem usuários autenticados às empresas que possuem e às respectivas vendas.
-
-`load_company_sales(company_id, user_access_token)`:
-
-1. Lê URL e chave pública do ambiente.
-2. Valida a sessão consultando `/auth/v1/user`.
-3. Consulta vendas da empresa com o token do usuário, preservando RLS.
-4. Lê páginas de até 1.000 registros, ordenadas por ID, até receber uma página vazia.
-5. Retorna um DataFrame com as colunas esperadas pela análise.
-
-Não utiliza chave `service_role`, não cadastra registros e não está conectado às rotas atuais. O modelo não oferece convites ou permissões compartilhadas para colaboradores.
-
-### Etapas para usar dados reais
-
-1. Criar ou escolher um projeto Supabase.
-2. Aplicar `supabase/migrations/001_initial.sql` em um banco compatível. Ela cria objetos novos e não é reaplicável sem avaliar os objetos existentes.
-3. Implementar login e renovação da sessão na interface.
-4. Receber e validar tokens nas rotas.
-5. Implementar seleção de empresa e autorização.
-6. Conectar o adaptador ao dashboard e ao relatório.
-7. Implementar cadastro/importação com validação monetária.
-8. Testar o isolamento dos registros entre usuários.
-
-Referência: [Row Level Security no Supabase](https://supabase.com/docs/guides/database/postgres/row-level-security).
+Resultado operacional = resultado das vendas − despesas − devoluções + CMV recuperado. A conciliação compara recebimentos registrados com receita − cartão − devoluções. Isso não constitui integração automática com bancos ou apuração fiscal.
 
 ## 13. Publicação na Vercel
 
@@ -660,7 +695,7 @@ npm run build
 
 ### Cobertura atual
 
-Os seis testes verificam:
+Os testes financeiros verificam:
 
 1. Reconciliação mensal e consistência entre produtos, dias e total.
 2. Períodos vazios, filtros, semanas entre meses e fevereiro bissexto.
@@ -669,7 +704,20 @@ Os seis testes verificam:
 5. Ausência de equilíbrio quando as taxas consomem a receita.
 6. PDFs dos três períodos e validação de parâmetros do dashboard.
 
-Os testes de PDF conferem assinatura do arquivo e cabeçalhos HTTP; não substituem inspeção visual. Não há suíte automatizada de navegador ou testes de RLS.
+Os testes de PDF conferem assinatura do arquivo e cabeçalhos HTTP; não substituem inspeção visual. Os testes adicionais cobrem JWTs inválidos, configuração sem exposição de senha, importação CSV, relatórios e destinatários de agendamentos.
+
+Para os testes de integração, defina `NEON_TEST_DATABASE_URL` apontando para um PostgreSQL **descartável**. Eles aplicam migrações e verificam RLS entre usuários, devoluções, rollback integral de importações duplicadas, filtros de datas, snapshots e edição de produtos. Sem essa variável, esses dois testes são pulados. O CI fornece PostgreSQL 18 para executá-los. A autenticação remota deve ser conferida com uma conta da equipe e os domínios autorizados no Neon.
+
+### Testes de navegador
+
+```powershell
+# Somente banco descartável: os testes criam registros.
+$env:NEON_TEST_DATABASE_URL="postgresql://usuario:senha@localhost:5432/banco_testes"
+npx playwright install chromium
+npm run test:e2e
+```
+
+A suíte abre uma API isolada na porta 8011 e o frontend na 5174. A identidade Neon é simulada no teste, mas as rotas de negócio e o PostgreSQL são reais. Verifica responsividade em 360, 768 e 1440 pixels, mudança de período, PDF, criação de empresa/produto, estoque, contas, CSV, persistência do histórico e acessibilidade WCAG A/AA na tela de relatórios. Isso não equivale a uma certificação de acessibilidade nem testa a entrega de e-mails do Neon.
 
 ### GitHub Actions
 
@@ -735,37 +783,36 @@ O repositório não possui arquivo de licença. A licença de distribuição ain
 | Site abre, mas API publicada falha | Função ou rewrite | Confira `vercel.json` e logs da Vercel |
 | `/docs` retorna `404` | Documentação sob prefixo API | Use `/api/docs` |
 | PDF não baixa | Erro ou indisponibilidade da API | Teste a rota diretamente e consulte logs |
-| `.env` não conecta Supabase | Integração pendente | Não há troca automática da fonte; siga a seção Supabase |
+| Área da empresa pede configuração | Variáveis ausentes | Preencha `.env`, aplique migrações e reinicie a API |
 
 Ao relatar problemas, informe ambiente, período/data, comando e mensagem de erro. Não compartilhe tokens ou dados sensíveis em logs e issues.
 
-## 17. Limitações e próximos passos
+## 17. Operação e configuração dos serviços
 
-### Limitações atuais
+### Relatórios agendados
 
-- Dados fictícios em memória, sem persistência, importação ou conciliação bancária.
-- Sem autenticação nas rotas públicas do MVP.
-- Resultado anterior a aluguel, folha e demais despesas fixas.
-- Sem devoluções, estornos, estoque ou contas a pagar/receber.
-- Imposto ilustrativo, sem apuração do Simples por anexo/faixa.
-- Antecipação simplificada; não substitui regras da adquirente.
-- Cascata fixa, independente do período.
-- Navegação por estado React, sem URL individual para cada tela.
-- Empresa e identificação de administradores demonstrativas.
-- PDF sob demanda, sem histórico, agendamento ou envio automático.
-- Sem publicação de imagem em registry ou hospedagem Docker remota.
+O workflow `operations.yml` executa diariamente às 10:00 UTC (06:00 em Manaus). Relatórios semanais são gerados na segunda-feira e mensais no primeiro dia do mês, sempre para o período encerrado. A entrega exige os secrets `DATABASE_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` e `SMTP_FROM` no GitHub. Sem configuração, o workflow informa que o envio está inativo.
 
-### Evolução sugerida
+O destinatário é o e-mail confirmado da conta, não um endereço arbitrário. O worker registra cada execução com chave única por agendamento e período. Em falha de SMTP, confira o provedor antes de tentar novamente para evitar envio duplicado. O worker utiliza a conexão administrativa no servidor; essa credencial nunca deve ser fornecida ao frontend.
 
-- [ ] Autenticação Supabase e seleção de empresa.
-- [ ] Persistência nas rotas e testes de isolamento RLS.
-- [ ] Importação de CSV com prévia, validação e identificação de duplicidades.
-- [ ] Cadastro de produtos, custos, vendas e condições de pagamento.
-- [ ] Despesas fixas e resultado operacional.
-- [ ] Conciliação de recebíveis, devoluções e estornos.
-- [ ] Cascata calculada com os dados do período.
-- [ ] Histórico e agendamento de relatórios.
-- [ ] Testes de navegador, acessibilidade e exportação completa.
-- [ ] Backup, observabilidade e configuração de produção para dados reais.
+### Backup
 
-Esses itens são possibilidades de evolução, não funcionalidades disponíveis nem compromissos de prazo.
+`scripts/backup.py` usa `pg_dump` e criptografa o resultado com Fernet. Configure `DATABASE_URL` e `BACKUP_KEY` nos secrets do GitHub. Guarde a chave separadamente: ela é necessária para recuperar o backup. O workflow mantém os arquivos criptografados como artifacts por 14 dias. O workflow usa ferramentas PostgreSQL 18 via Docker para compatibilidade com o banco. O backup cobre os schemas `public` e `lucra_private`; contas e sessões do Neon Auth não estão incluídas.
+
+Para backup manual, configure `BACKUP_KEY` no ambiente e execute `python -m scripts.backup`. Se não tiver as ferramentas PostgreSQL instaladas, defina `PG_USE_DOCKER=1` com Docker ativo.
+
+Para restaurar, aponte `RESTORE_DATABASE_URL` para um banco vazio e execute `python -m scripts.restore caminho/arquivo.dump.enc`, usando a mesma `BACKUP_KEY`. O comando recusa bancos com tabelas existentes, restaura em uma transação e repõe as permissões da aplicação. O fluxo foi testado com comparação das contagens de seis tabelas em um banco separado. Guarde a chave de recuperação fora do repositório e separada dos backups.
+
+### Imagem Docker
+
+O workflow manual `container.yml` publica no GitHub Container Registry usando `GITHUB_TOKEN`, com permissão `packages: write`. Publicar uma imagem não inicia uma hospedagem remota: é necessário configurar um servidor de destino e suas variáveis de ambiente.
+
+### Validação antes do uso real
+
+Execute os testes, aplique as migrações e valide login, isolamento entre duas contas, importação e geração de PDF no projeto Neon configurado. Os testes locais não substituem essa validação remota. Confira as taxas efetivamente cobradas e os impostos com os responsáveis da empresa; o simulador é uma projeção baseada nos parâmetros informados.
+
+O escopo atual é controle básico da empresa. Por decisão da equipe, envio por SMTP, hospedagem Docker remota, integrações com bancos/adquirentes e apuração tributária por regime ficam para uma etapa posterior. Impostos e taxas são valores informados nos lançamentos. O cadastro de condições não consulta contratos de adquirentes.
+
+### Monitoramento básico
+
+`/api/health` verifica a API; `/api/ready` verifica a conexão e as três migrações esperadas. Respostas incluem `X-Request-ID`. Os logs da aplicação registram método, rota, status e duração, sem corpo, token ou query string. O workflow operacional consulta a prontidão diariamente. Logs e checks não substituem um serviço externo de alertas em tempo real.

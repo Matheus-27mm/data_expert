@@ -19,11 +19,14 @@ def report_pdf(data):
     period = {'daily':'Diário', 'weekly':'Semanal', 'monthly':'Mensal'}[data['period']]
     t = data['totals']
     story = [Paragraph('lucra.', styles['Brand']), Paragraph(f'Relatório {period} de Resultados', styles['Title']),
-        Paragraph(f"Casa Nova Store | {data['start']} a {data['end']} | Dados demonstrativos", styles['Muted']), Spacer(1, 6*mm)]
+        Paragraph(f"{escape(data.get('company','Casa Nova Store'))} | {data['start']} a {data['end']} | {'Dados demonstrativos' if data.get('source')=='demo' else 'Dados registrados pela empresa'}", styles['Muted']), Spacer(1, 6*mm)]
     summary = [['INDICADOR', 'VALOR'], ['Receita de vendas', brl(t['revenue'])], ['Custo das mercadorias (CMV)', brl(t['cmv'])],
         ['Lucro estimado (receita - CMV)', brl(t['estimated'])], ['Simples Nacional (premissa)', brl(t['tax'])],
         ['Cartão e antecipação', brl(t['card'])], ['Comissões', brl(t['commission'])], ['Resultado líquido das vendas', brl(t['net'])],
         ['Margem de contribuição', f"{t['margin']:.2f}%".replace('.', ',')]]
+    if 'operating' in t:
+        summary += [['Despesas operacionais',brl(t['expenses'])],['Devoluções e estornos',brl(t['refunds'])],
+                    ['CMV recuperado',brl(t['cost_recovered'])],['Resultado operacional',brl(t['operating'])]]
     table = Table(summary, colWidths=[115*mm, 59*mm])
     table.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#174b3b')),('TEXTCOLOR',(0,0),(-1,0),colors.white),
         ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),('FONTSIZE',(0,0),(-1,-1),10),('ALIGN',(1,1),(-1,-1),'RIGHT'),
@@ -44,7 +47,7 @@ def report_pdf(data):
         story.append(Paragraph('Nenhum item com margem negativa neste período.' if t['quantity'] else 'Nenhuma venda neste período.', styles['Normal']))
     story += [Spacer(1,8*mm), Paragraph('Leitura do resultado',styles['Heading2']),
         Paragraph(f"As deduções somam {brl(t['hidden'])}. Revise preço, custo e condições de parcelamento dos itens com prejuízo.",styles['Normal']),
-        Spacer(1,4*mm), Paragraph('Metodologia: resultado das vendas = receita - CMV - impostos estimados - cartão/antecipação - comissões. Não inclui despesas fixas, devoluções ou conciliação bancária. O valor não representa saldo bancário nem lucro contábil. Taxas fictícias para demonstração.',styles['Muted'])]
+        Spacer(1,4*mm), Paragraph('Metodologia: resultado das vendas = receita - CMV - impostos - cartão/antecipação - comissões. Resultado operacional = resultado das vendas - despesas - devoluções + CMV recuperado, quando esses lançamentos estão disponíveis. Não representa saldo bancário nem apuração fiscal. '+('Taxas fictícias para demonstração.' if data.get('source')=='demo' else 'Valores conforme registros da empresa; relatório preservado na data de geração.'),styles['Muted'])]
     def footer(canvas, document):
         canvas.setFont('Helvetica',8)
         canvas.setFillColor(colors.HexColor('#64736b'))

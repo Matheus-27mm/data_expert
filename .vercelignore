@@ -11,3 +11,6 @@ tmp
 .env.*
 Dockerfile
 compose.yaml
+tests
+playwright-report
+test-results

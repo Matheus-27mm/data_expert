@@ -13,3 +13,6 @@ tmp
 .env.*
 **/test_*.py
 *.tsbuildinfo
+tests
+playwright-report
+test-results
