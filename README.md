@@ -815,4 +815,4 @@ O escopo atual é controle básico da empresa. Por decisão da equipe, envio por
 
 ### Monitoramento básico
 
-`/api/health` verifica a API; `/api/ready` verifica a conexão e as três migrações esperadas. Respostas incluem `X-Request-ID`. Os logs da aplicação registram método, rota, status e duração, sem corpo, token ou query string. O workflow operacional consulta a prontidão diariamente. Logs e checks não substituem um serviço externo de alertas em tempo real.
+`/api/health` verifica a API; `/api/ready` verifica a conexão e as três migrações esperadas. Respostas incluem `X-Request-ID`. Os logs da aplicação registram método, rota, status e duração, sem corpo, token ou query string. O workflow operacional consulta a prontidão diariamente quando a variável `PUBLIC_APP_URL` estiver configurada no GitHub, após a publicação. Logs e checks não substituem um serviço externo de alertas em tempo real.

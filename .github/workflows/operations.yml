@@ -60,7 +60,10 @@ jobs:
           retention-days: 14
           if-no-files-found: error
   health:
+    if: vars.PUBLIC_APP_URL != ''
     runs-on: ubuntu-latest
+    env:
+      APP_URL: ${{ vars.PUBLIC_APP_URL }}
     steps:
       - name: Check deployed application readiness
-        run: curl --retry 3 --retry-all-errors --max-time 30 --fail https://dataexpert-eight.vercel.app/api/ready
+        run: curl --retry 3 --retry-all-errors --max-time 30 --fail "$APP_URL/api/ready"
