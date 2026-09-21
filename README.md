@@ -124,7 +124,13 @@ Na demonstração, as telas compartilham o período selecionado. Na área da emp
 | PDF | Geração sob demanda, sem histórico | Snapshot salvo e disponível no histórico |
 | Simulador | Disponível nas telas demonstrativas | Não vinculado aos lançamentos ou condições cadastradas |
 
-A navegação utiliza fragmentos de URL (`#/...`), permitindo acessar diretamente as telas. A navegação inferior no celular pertence à demonstração; a área autenticada utiliza um menu horizontal com rolagem.
+A navegação utiliza fragmentos de URL (`#/...`), permitindo acessar diretamente as telas. A navegação inferior no celular pertence à demonstração; a área autenticada utiliza uma sidebar no computador e um menu lateral recolhível no celular, com configurações e saída da conta.
+
+### Acesso e configurações
+
+A página inicial abre a tela de login quando não há sessão. Ela inclui criação de conta, visualização opcional da senha, mensagens de autenticação e confirmação de cadastro. A autenticação continua sendo realizada pelo Neon Auth.
+
+Na sidebar, **Configurações** mostra o e-mail da conta, a empresa selecionada e um atalho para cadastrar taxas e condições de parcelamento. **Sair da conta** encerra a sessão no provedor, limpa os dados da empresa na interface e retorna ao login. No celular, abra o menu pelo botão no cabeçalho.
 
 ### Guia de uso para a empresa
 
@@ -740,7 +746,7 @@ Cada empresa pertence a um usuário. As políticas limitam consultas e gravaçõ
 
 ### Uso da área da empresa
 
-1. Abra `/#/workspace/dashboard` e crie sua conta ou faça login.
+1. Abra a página inicial ou `/#/login` e crie sua conta ou faça login. A demonstração continua acessível pelo link **Explorar demonstração**.
 2. Crie uma empresa e selecione-a no cabeçalho.
 3. Cadastre produtos e vendas ou importe um CSV pela tela **Importar CSV**.
 4. Registre despesas, recebimentos e devoluções para compor o resultado operacional.
