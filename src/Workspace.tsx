@@ -10,6 +10,7 @@ const makeAuth = (url:string) => {
 type AuthClient = ReturnType<typeof makeAuth>;
 type AuthSession = {user: {id: string; email: string}};
 import './workspace.css';
+import './login.css';
 
 type Row = Record<string, any>;
 const brl=(v:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v/100);
