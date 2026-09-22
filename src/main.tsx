@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArrowDown, ArrowDownToLine, ArrowRight, ArrowUpRight, BarChart3, Bell, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, CircleHelp, CreditCard, FileText, LayoutDashboard, LoaderCircle, Package, Search, Settings2, ShieldCheck, Sparkles, TrendingUp, TriangleAlert, Wallet, X } from 'lucide-react';
+import { ArrowDown, ArrowDownToLine, ArrowRight, ArrowUpRight, Bell, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, CircleHelp, CreditCard, FileText, LayoutDashboard, LoaderCircle, Package, Search, Settings2, ShieldCheck, Sparkles, TrendingUp, TriangleAlert, Wallet, X } from 'lucide-react';
 import './styles.css';
 import {Workspace, DynamicWaterfall} from './Workspace';
 
@@ -34,7 +34,7 @@ function App(){
  const navigate=(next:string)=>{location.hash='/demo/'+next;setPage(next);setQuery('');window.scrollTo({top:0,behavior:'smooth'})};
  return <div className="app-shell">
   <aside className="sidebar">
-   <a className="brand" href="#" onClick={e=>{e.preventDefault();navigate('overview')}}><span className="brand-symbol"><BarChart3 size={24}/></span>lucra<span className="brand-dot">.</span></a>
+   <a className="brand" href="#" onClick={e=>{e.preventDefault();navigate('overview')}}><img className="lucra-logo" src="/brand/lucra-dark.svg" width="148" height="33" alt="Lucra"/></a>
    <div className="workspace"><span className="store-avatar">CN</span><div><b>Casa Nova Store</b><small>Seu negócio, mais claro</small></div><ChevronDown size={15}/></div>
    <div className="nav-label">WORKSPACE</div>
    <nav>{[{id:'overview',icon:LayoutDashboard,label:'Visão geral'},{id:'products',icon:Package,label:'Produtos e margens'},{id:'simulator',icon:CreditCard,label:'Simulador de preço'},{id:'reports',icon:FileText,label:'Relatórios'}].map(n=><button key={n.id} onClick={()=>navigate(n.id)} className={page===n.id?'nav-item active':'nav-item'}><n.icon size={19}/>{n.label}{page===n.id&&<span className="active-dot"/>}</button>)}</nav>

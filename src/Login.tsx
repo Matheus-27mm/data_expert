@@ -6,7 +6,7 @@ export function Login({busy,error,notice,onSubmit}:{busy:boolean;error:string;no
  const [visible,setVisible]=useState(false);
  return <main className="auth-page">
   <section className="auth-story" aria-label="Conheça o Lucra">
-   <a className="auth-brand" href="#/login"><span><BarChart3 size={25}/></span>lucra<span className="auth-dot">.</span></a>
+   <a className="auth-brand" href="#/login" aria-label="Lucra — início"><img className="lucra-logo" src="/brand/lucra-light.svg" width="157" height="35" alt="Lucra"/></a>
    <div className="auth-orbits" aria-hidden="true"><i/><i/><i/></div>
    <div className="auth-story-body"><span className="auth-kicker"><span/> INTELIGÊNCIA PARA O SEU NEGÓCIO</span><h1>O próximo passo<br/>começa com<br/><em>clareza.</em></h1><p>Entenda seus resultados. Encontre oportunidades.<br/>Decida com a tranquilidade de quem sabe.</p>
     <div className="auth-preview">

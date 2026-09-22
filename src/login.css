@@ -11,3 +11,10 @@
 @media(max-width:1050px) and (min-width:701px){.auth-page{grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:10px}.auth-story{padding:30px 26px}.auth-story h1{font-size:42px;letter-spacing:-2px}.auth-story-body{padding-block:40px}.auth-preview{padding:18px 16px 0}.auth-preview-heading strong{font-size:19px}.auth-preview-live{display:none}.auth-story-footer>span:last-child{display:none}.auth-form-side{padding:18px 26px}.auth-demo{font-size:0}.auth-form-wrap h2{font-size:27px}.auth-preview-bottom>span{font-size:8px;gap:4px}}
 @media(max-width:700px){.auth-page{display:flex;flex-direction:column;padding:10px;gap:0;background:#f7f8f3}.auth-story{padding:20px 22px;border-radius:14px;min-height:86px;justify-content:center}.auth-brand{font-size:29px}.auth-orbits i{top:-500px}.auth-story-body,.auth-story-footer{display:none}.auth-form-side{padding:21px 16px 12px;flex:1;min-height:calc(100dvh - 106px)}.auth-demo{font-size:0;gap:0}.auth-demo>span{font-size:10px;padding:8px 11px}.auth-form-wrap{padding:28px 0 36px;max-width:380px}.auth-welcome-icon{margin-bottom:22px;width:44px;height:44px}.auth-form-wrap h2{font-size:30px;max-width:320px}.auth-form-wrap>p{font-size:13px}.auth-form-wrap input{font-size:16px;height:52px}.auth-form-wrap label{font-size:12px}.auth-submit{font-size:13px;min-height:52px}.auth-switch,.auth-switch button{font-size:12px!important}.auth-assurance{font-size:10px}.auth-form-side footer{font-size:9px}.auth-form-wrap form{margin-top:26px}}
 @media(prefers-reduced-motion:reduce){.auth-page *{transition:none!important;animation:none!important}}
+
+/* Shared vector logo: preserve proportions without depending on web fonts. */
+.lucra-logo{display:block;object-fit:contain;max-width:100%;flex-shrink:0}
+.auth-brand .lucra-logo{width:157px;height:35px}
+.workspace-logo .lucra-logo{width:144px;height:32px}
+.brand .lucra-logo{width:148px;height:33px}
+@media(max-width:700px){.auth-brand .lucra-logo{width:140px;height:auto}}

@@ -177,6 +177,10 @@ Se houver uma conta de R$ 100,00 de aluguel na mesma competência, o cadastro da
 
 Os números são didáticos. Use os custos, impostos e taxas efetivos da empresa nos registros.
 
+### Identidade visual
+
+A marca Lucra usa um monograma geométrico em L, com abertura e detalhe quadrado. Os arquivos vetoriais ficam em `public/brand`: `lucra-dark.svg` para fundos claros, `lucra-light.svg` para fundos escuros, `lucra-symbol.svg` para uso isolado e `favicon.svg` para a aba do navegador. O login e os menus compartilham essas versões, sem dependência de fontes externas para desenhar a marca.
+
 ## 3. Tecnologias e arquitetura
 
 | Camada | Tecnologia | Responsabilidade |

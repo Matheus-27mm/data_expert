@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {BarChart3, LayoutDashboard, Settings, LogOut, Menu, X, ChevronRight, ShieldCheck, Building2, UserRound} from 'lucide-react';
+import {LayoutDashboard, Settings, LogOut, Menu, X, ChevronRight, ShieldCheck, Building2, UserRound} from 'lucide-react';
 import {Login} from './Login';
 import {createInternalNeonAuth} from '@neondatabase/auth';
 const makeAuth = (url:string) => {
@@ -60,7 +60,7 @@ export function Workspace(){
  <a className="workspace-skip" href="#workspace-main" onClick={e=>{e.preventDefault();document.getElementById("workspace-main")?.focus()}}>Pular para o conteúdo</a>
  {menuOpen&&<button className="workspace-backdrop" aria-label="Fechar menu" onClick={()=>setMenuOpen(false)}/>}
  <aside className={'workspace-sidebar'+(menuOpen?' is-open':'')} aria-label="Menu principal">
- <a className="workspace-logo" href="#/workspace/dashboard"><BarChart3 size={27}/> lucra.</a>
+ <a className="workspace-logo" href="#/workspace/dashboard" aria-label="Lucra — visão geral"><img className="lucra-logo" src="/brand/lucra-dark.svg" width="144" height="32" alt="Lucra"/></a>
  <label className="workspace-company">Sua empresa<select value={company} onChange={e=>setCompany(e.target.value)}><option value="">Selecionar empresa</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
  <span className="workspace-nav-label">GESTÃO DO NEGÓCIO</span>
  <nav className="workspace-nav" aria-label="Área da empresa">{Object.entries(navigation).map(([key,label])=><a key={key} href={'#/workspace/'+key} onClick={()=>setMenuOpen(false)} aria-current={area===key?'page':undefined}>{key==='settings'?<Settings size={17}/>:key==='dashboard'?<LayoutDashboard size={17}/>:<ChevronRight size={15}/>}<span>{label}</span></a>)}</nav>
