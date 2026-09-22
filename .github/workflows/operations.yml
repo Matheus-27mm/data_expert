@@ -49,14 +49,16 @@ jobs:
             echo '::notice::Backup is inactive: configure DATABASE_URL and BACKUP_KEY.'
           fi
       - if: env.DATABASE_URL != '' && env.BACKUP_KEY != ''
-        run: pip install 'cryptography>=44,<51' 'python-dotenv>=1,<2'
+        run: pip install -r requirements.txt
       - if: env.DATABASE_URL != '' && env.BACKUP_KEY != ''
-        run: python -m scripts.backup
+        run: |
+          python -m scripts.backup
+          python -m scripts.company_backup
       - if: env.DATABASE_URL != '' && env.BACKUP_KEY != ''
         uses: actions/upload-artifact@v4
         with:
           name: encrypted-postgres-backup
-          path: output/backups/*.enc
+          path: output/backups/**/*.enc
           retention-days: 14
           if-no-files-found: error
   health:

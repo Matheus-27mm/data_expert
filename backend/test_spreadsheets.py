@@ -44,6 +44,8 @@ def test_confirm_revalidates_and_blocks_existing_identifier():
         def company(self,cid): pass
         def rows(self,*args): return [{'sku':'A'}]
         def request(self,*args,**kwargs): self.writes+=1
+        def insert(self,table,payload):
+            assert table=='import_jobs' and payload['status']=='rejected'
     db=DB();data=payload('sku,name,category,unit_cost,unit_price\nA,Caneca,Casa,1.00,2.00')
     result=import_sheet(uuid4(),'preview',data,db)
     assert not result['can_import'] and result['duplicates']==['A']

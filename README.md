@@ -12,7 +12,7 @@ A proposta atual é oferecer **controle básico da empresa com dados informados 
 
 **[Acessar o sistema](https://dataexpert-eight.vercel.app/#/workspace/dashboard)** · **[Ver demonstração](https://dataexpert-eight.vercel.app/#/demo/overview)** · **[Repositório](https://github.com/Matheus-27mm/data_expert)** · **[Documentação da API](https://dataexpert-eight.vercel.app/api/docs)**
 
-> **Atualização de 22/09/2026:** navegação organizada por áreas, análises executivas, planos de ação, histórico de clientes e central de importação CSV/Excel. O login real foi validado com uma conta temporária; os testes automatizados de navegador simulam apenas a identidade e usam PostgreSQL real para os dados de negócio.
+> **Atualização de 22/09/2026:** layout fluido, central de integrações, mapeamentos reutilizáveis, histórico de importações e backups individuais por empresa. O login real foi validado com uma conta temporária; os testes automatizados de navegador simulam apenas a identidade e usam PostgreSQL real para os dados de negócio.
 
 | Componente | Estado atual |
 | --- | --- |
@@ -231,6 +231,49 @@ A importação adiciona registros; não substitui produtos existentes. Referênc
 | GET / POST | `/{company_id}/records/customer_contacts` | Consultar/adicionar atendimentos |
 
 Os endpoints de planilhas recebem `{kind, filename, content, sheet, mapping}`, com `content` em Base64, `sheet` opcional e `mapping` no formato `{campo_do_sistema: cabeçalho_do_arquivo}`. A migração `004_business_history.sql` cria os históricos, as políticas RLS e as chaves compostas que impedem vincular uma resposta ou atendimento a registros de outra empresa. Também adiciona a referência externa única para despesas importadas. A restauração de backup reaplica os privilégios das novas tabelas.
+
+### Integrações preparadas para novos clientes
+
+Em **Integrações**, cada empresa cadastra suas origens de dados com nome, fornecedor e forma de entrada. Origens por arquivo utilizam a central CSV/Excel. Origens do tipo API são exibidas como **Conector pendente**: cadastrar um ERP não estabelece uma conexão, não solicita senhas e não inicia sincronização.
+
+Na importação, selecione a origem, relacione as colunas e dê um nome ao mapeamento. Esse perfil fica salvo para a combinação empresa/origem/tipo de dado e pode ser reutilizado nos próximos arquivos. Campos ausentes em um novo arquivo continuam exigindo correção. Os dados só são gravados após confirmação.
+
+O histórico mostra as últimas 100 tentativas da central de planilhas: origem, nome do arquivo, tipo de dados, resultado, contagens e motivo de rejeição. O arquivo original não é armazenado. Para repetir uma importação rejeitada, corrija e envie o arquivo novamente. As APIs legadas de CSV e a importação de recebimentos mantêm seus fluxos próprios.
+
+Na confirmação, registros, histórico de sucesso e vínculos de origem são salvos **na mesma transação**. Uma duplicidade detectada durante a gravação reverte o lote e produz um registro de rejeição separado. `source_records` mantém o identificador externo, a origem, o tipo de entidade, o registro criado e o lote. A unicidade dos produtos/vendas/despesas continua protegendo cada empresa; registros existentes não são sobrescritos automaticamente.
+
+`backend/connectors.py` define o contrato para futuros adaptadores de ERP: eventos com identificador, revisão, entidade e operação; leitura paginada com cursor; credenciais fornecidas no servidor. Nenhum conector de fornecedor está habilitado. Atualizações e cancelamentos exigem regras explícitas e são rejeitados pelo contrato básico. Para implementar um ERP, será necessário desenvolver e testar autenticação, armazenamento seguro de credenciais por empresa, paginação, limites da API, retomada, agendamento e tratamento das alterações específicas do fornecedor.
+
+| Método | Rota autenticada (prefixo `/api/workspace`) | Finalidade |
+| --- | --- | --- |
+| GET / POST | `/{company_id}/integrations` | Consultar a central / cadastrar uma origem |
+| POST | `/{company_id}/integrations/mappings` | Salvar um mapeamento de colunas |
+| GET / POST | `/{company_id}/backups` | Consultar as últimas cópias / baixar uma cópia atual |
+
+### Backup individual por empresa
+
+**Integrações → Backups** oferece um download `.json.gz` da empresa ativa e o histórico das últimas 100 cópias geradas. A leitura usa uma transação consistente (`REPEATABLE READ`) com a identidade do proprietário e RLS, incluindo cadastros, lançamentos, estoque, contas, planos, clientes, relatórios e metadados de importação. Não inclui credenciais, contas/sessões do Neon Auth, histórico de entregas de e-mail nem arquivos de mídia. Os registros anteriores de backup também não entram no próprio snapshot.
+
+- **Download manual:** JSON compactado sem criptografia; limite de 4 MB compactados para a resposta da Vercel. Deve ser guardado em local privado pelo proprietário.
+- **Agendamento:** o workflow `Scheduled operations` continua gerando o dump geral e também executa `python -m scripts.company_backup`. Cada empresa recebe um arquivo independente `.json.gz.enc`, criptografado com `BACKUP_KEY`.
+- **Horário e retenção:** diariamente às 10h UTC / 06h de Manaus; artifacts do GitHub com retenção de 14 dias. O upload precisa concluir com sucesso para a cópia ficar disponível no GitHub.
+- **Rastreabilidade:** a tela registra a geração, o destino, a quantidade de registros e o nome do arquivo; o banco também mantém SHA-256 do JSON. Uma entrada no histórico não confirma que o usuário terminou o download ou que o upload do workflow terminou.
+
+O administrador encontra os arquivos individuais em `output/backups/companies/` dentro do artifact `encrypted-postgres-backup`. O artifact é administrativo; a API do aplicativo só permite consultar e exportar a empresa autorizada. A chave deve permanecer fora do arquivo e do repositório.
+
+#### Recuperar uma empresa sem sobrescrever a original
+
+A recuperação é administrativa, por CLI. Configure **explicitamente** `RESTORE_DATABASE_URL` para o destino, aplique nele as cinco migrações e execute:
+
+```bash
+python -m scripts.restore_company caminho/empresa.json.gz.enc --company-id UUID_DA_EMPRESA_ORIGINAL
+```
+
+Para arquivos criptografados, também configure `BACKUP_KEY` fora do terminal/chat. Downloads manuais `.json.gz` usam o mesmo comando e dispensam a chave. O UUID informado precisa coincidir com o snapshot.
+
+O procedimento valida formato e vínculos da empresa, cria novos identificadores e restaura tudo em uma única transação, com o nome **“Empresa (restaurada)”** e o proprietário original. A empresa original não é alterada. Agendamentos restaurados ficam desativados. Despesas vinculadas a contas são reconstruídas pelo mecanismo de contabilização das contas, sem duplicação. Entradas de estoque são restauradas antes das saídas para respeitar os limites de saldo. Um erro reverte a nova cópia inteira. O usuário do proprietário deve continuar existindo no Neon Auth para acessar os dados restaurados.
+
+A migração `005_integrations_backups.sql` cria `integration_sources`, `import_mappings`, `import_jobs`, `source_records` e `company_backups`, todas com RLS. Os testes cobrem isolamento, rollback após conflito concorrente, exportação consistente, restauração dos vínculos e prevenção de despesas duplicadas.
 
 ## 3. Tecnologias e arquitetura
 
@@ -1123,4 +1166,4 @@ O escopo atual é controle básico da empresa. Por decisão da equipe, envio por
 
 ### Monitoramento básico
 
-`/api/health` verifica a API; `/api/ready` verifica a conexão e as quatro migrações esperadas. Respostas incluem `X-Request-ID`. Os logs da aplicação registram método, rota, status e duração, sem corpo, token ou query string. O workflow operacional consulta a prontidão diariamente quando a variável `PUBLIC_APP_URL` estiver configurada no GitHub, após a publicação. Logs e checks não substituem um serviço externo de alertas em tempo real.
+`/api/health` verifica a API; `/api/ready` verifica a conexão e as cinco migrações esperadas. Respostas incluem `X-Request-ID`. Os logs da aplicação registram método, rota, status e duração, sem corpo, token ou query string. O workflow operacional consulta a prontidão diariamente quando a variável `PUBLIC_APP_URL` estiver configurada no GitHub, após a publicação. Logs e checks não substituem um serviço externo de alertas em tempo real.

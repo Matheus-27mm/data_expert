@@ -1,7 +1,7 @@
 """Integration tests: set NEON_TEST_DATABASE_URL to a disposable PostgreSQL database."""
 import os
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID,uuid4
 import psycopg
 import pytest
 from fastapi import HTTPException
@@ -106,3 +106,65 @@ def test_history_rls_and_composite_links(database):
     a.insert('expenses',expense)
     with pytest.raises(HTTPException): a.request('POST','expenses',payload=[{**expense,'external_id':'expense-2'},expense])
     assert not a.rows('expenses',ca,external_id='eq.expense-2')
+
+def test_integrations_audit_and_company_backup_roundtrip(database):
+    import base64,copy,gzip,json
+    from backend.spreadsheets import Spreadsheet,import_sheet
+    from backend.integrations import Mapping,save_mapping,overview
+    from backend.company_backup import snapshot,encode_snapshot,record_backup
+    from scripts.restore_company import restore_data
+    a=Session('',{'id':str(uuid4())});b=Session('',{'id':str(uuid4())})
+    cid=a.insert('companies',{'name':'Backup company','owner_id':a.user['id']})['id']
+    other=b.insert('companies',{'name':'Other company','owner_id':b.user['id']})['id']
+    source=a.insert('integration_sources',{'company_id':cid,'name':'ERP export','provider':'test','mode':'file'})
+    mapping=Mapping(source_id=source['id'],kind='products',name='Daily export',mapping={k:k for k in ['sku','name','category','unit_cost','unit_price']})
+    save_mapping(UUID(cid),mapping,a)
+    with pytest.raises(HTTPException):save_mapping(UUID(other),mapping,b)
+    data=Spreadsheet(kind='products',source_id=source['id'],filename='catalog.csv',content=base64.b64encode(b'sku,name,category,unit_cost,unit_price\nA,Test,General,1.00,2.00').decode())
+    assert import_sheet(UUID(cid),'confirm',data,a)['imported']==1
+    with pytest.raises(HTTPException):import_sheet(UUID(cid),'confirm',data,a)
+    jobs=overview(UUID(cid),a)['jobs']
+    assert len([j for j in jobs if j['status']=='imported'])==1
+    assert len([j for j in jobs if j['status']=='rejected'])==1
+    assert len(a.rows('source_records',cid))==1
+    assert b.rows('source_records',cid)==[] and b.rows('import_jobs',cid)==[]
+    assert b.rows('import_mappings',cid)==[] and b.rows('integration_sources',cid)==[]
+    a.insert('bills',{'company_id':cid,'reference':'B1','supplier':'Landlord','description':'Rent','category':'Fixed','incurred_on':'2026-09-22','due_on':'2026-09-30','amount':1000})
+    product=a.rows('products',cid)[0]
+    for ref,direction in [('I','in'),('O','out')]:
+        a.insert('stock_movements',{'company_id':cid,'product_id':product['id'],'occurred_on':'2026-09-22','direction':direction,'quantity':1,'reference':ref,'description':'Test'})
+    original=snapshot(a,cid);content,checksum=encode_snapshot(original)
+    assert json.loads(gzip.decompress(content))==original
+    record_backup(a,original,checksum,'test.json.gz','download')
+    assert b.rows('company_backups',cid)==[]
+    with pytest.raises(HTTPException):snapshot(b,cid)
+    restored=restore_data(original,UUID(cid))
+    assert restored!=cid and b.rows('companies',id='eq.'+restored)==[]
+    copy_snapshot=snapshot(a,restored)
+    assert {t:len(r) for t,r in original['records'].items()}=={t:len(r) for t,r in copy_snapshot['records'].items()}
+    assert a.rows('expenses',restored)[0]['amount']==1000
+    assert inventory(UUID(restored),a)[0]['balance']==0
+    assert a.rows('source_records',restored)[0]['record_id']==a.rows('products',restored)[0]['id']
+    corrupted=copy.deepcopy(original);corrupted['records']['products'][0]['company_id']=other
+    count=len(a.rows('companies'))
+    with pytest.raises(ValueError):restore_data(corrupted,UUID(cid))
+    assert len(a.rows('companies'))==count
+
+
+def test_import_audit_rollback_on_late_conflict(database):
+    from backend.spreadsheets import Spreadsheet,import_sheet
+    import base64
+    user={'id':str(uuid4())};db=Session('',user)
+    cid=db.insert('companies',{'name':'Rollback','owner_id':user['id']})['id']
+    db.insert('products',{'company_id':cid,'sku':'EXISTS','name':'Old','category':'C','unit_cost':100,'unit_price':200})
+    # Simulate a conflict that arrives after the preflight lookup.
+    class RacingSession(Session):
+        def rows(self,table,*args,**kwargs):
+            if table=='products':return []
+            return super().rows(table,*args,**kwargs)
+    racing=RacingSession('',user)
+    content='sku,name,category,unit_cost,unit_price\nNEW,New,C,1,2\nEXISTS,Old,C,1,2'
+    with pytest.raises(HTTPException):import_sheet(UUID(cid),'confirm',Spreadsheet(kind='products',filename='race.csv',content=base64.b64encode(content.encode()).decode()),racing)
+    assert len(db.rows('products',cid))==1
+    jobs=db.rows('import_jobs',cid)
+    assert len(jobs)==1 and jobs[0]['status']=='rejected'

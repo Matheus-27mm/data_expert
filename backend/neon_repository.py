@@ -1,4 +1,5 @@
 """PostgreSQL access with parameterized values and transaction-local RLS identity."""
+from contextlib import nullcontext, contextmanager
 import json
 import os
 import re
@@ -15,7 +16,7 @@ from . import settings  # noqa: F401
 
 TABLES = {'companies','sales','products','expenses','adjustments','settlements',
           'payment_terms','report_history','report_schedules','report_deliveries',
-          'stock_movements','bills','bill_payments','action_plans','plan_updates','customers','customer_contacts'}
+          'stock_movements','bills','bill_payments','action_plans','plan_updates','customers','customer_contacts','integration_sources','import_mappings','import_jobs','source_records','company_backups'}
 
 def identifier(value):
     if not re.fullmatch(r'[a-z_][a-z_0-9]*', value):
@@ -46,8 +47,9 @@ def conditions(params):
     return clauses, values
 
 class Session:
-    def __init__(self, token, user, *, worker=False):
+    def __init__(self, token, user, *, worker=False, connection=None):
         self.user, self.worker = user, worker
+        self.connection = connection
 
     def request(self, method, path, *, params=None, payload=None, prefer=None):
         if path not in TABLES or (path=='report_deliveries' and not self.worker):
@@ -57,7 +59,7 @@ class Session:
         clauses, values = conditions(params)
         where = sql.SQL(' WHERE ')+sql.SQL(' AND ').join(clauses) if clauses else sql.SQL('')
         try:
-            with psycopg.connect(os.environ['DATABASE_URL'],connect_timeout=15,row_factory=dict_row) as conn:
+            with (nullcontext(self.connection) if self.connection else psycopg.connect(os.environ['DATABASE_URL'],connect_timeout=15,row_factory=dict_row)) as conn:
                 if not self.worker:
                     conn.execute('SET LOCAL ROLE lucra_app')
                     conn.execute("SELECT set_config('lucra.claims',%s,true)", (json.dumps(self.user),))
@@ -90,6 +92,13 @@ class Session:
             raise HTTPException(422,'Confira valores, vínculos e limites do lançamento.') from None
         except psycopg.Error:
             raise HTTPException(503,'Banco indisponível. Confira a conexão e as migrações Neon.') from None
+
+    @contextmanager
+    def transaction(self, *, snapshot=False):
+        with psycopg.connect(os.environ['DATABASE_URL'],connect_timeout=15,row_factory=dict_row) as conn:
+            if snapshot:
+                conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ')
+            yield Session('',self.user,worker=self.worker,connection=conn)
 
     def rows(self, table, company_id=None, **filters):
         params = {'select':'*','order':'id.asc','limit':1000,**filters}

@@ -1,3 +1,5 @@
+import {gunzipSync} from 'node:zlib';
+import {readFileSync} from 'node:fs';
 import {test,expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
@@ -26,12 +28,19 @@ test('workspace persists company, stock, bills, CSV and PDF; accessible on mobil
   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
  });
  await page.goto('/#/workspace/dashboard');
+ await expect(page.getByRole('heading',{name:'Visão geral',exact:true})).toBeVisible();
  await expect(page.getByText('Carregando sua empresa…',{exact:true})).toHaveCount(0);
  if(!await page.getByLabel('Nome da empresa').isVisible()){await page.getByRole('link',{name:'Configurações',exact:true}).click();await page.getByText('Cadastrar outra empresa',{exact:true}).click();}
  await page.getByLabel('Nome da empresa').fill('Empresa de teste navegador');
  await page.getByRole('button',{name:'Criar empresa',exact:true}).click();
  await page.goto('/#/workspace/dashboard');
  await expect(page.getByRole('heading',{name:'Da receita ao resultado'})).toBeVisible();
+ await page.getByRole('link',{name:'Integrações',exact:true}).first().click();
+ await page.getByText('Cadastrar origem de dados',{exact:true}).click();
+ await page.getByLabel('Nome da origem').fill('ERP teste');
+ await page.getByLabel('Sistema / fornecedor').fill('Arquivo do ERP');
+ await page.getByRole('button',{name:'Salvar origem'}).click();
+ await expect(page.getByRole('heading',{name:'ERP teste',exact:true})).toBeVisible();
  await page.getByRole('link',{name:'Produtos',exact:true}).click();
  await page.getByText('Adicionar registro',{exact:true}).click();
  await page.getByLabel('SKU',{exact:true}).fill('SKU-001');
@@ -65,9 +74,15 @@ test('workspace persists company, stock, bills, CSV and PDF; accessible on mobil
  await page.getByRole('link',{name:'Contas a pagar',exact:true}).first().click();
  await expect(page.getByRole('cell',{name:'Imobiliária',exact:true})).toBeVisible();
  await page.getByRole('link',{name:'Importações',exact:true}).first().click();
+ await page.getByLabel('Origem dos dados').selectOption({label:'ERP teste'});
  await page.getByLabel('O que deseja importar?').selectOption('sales');
  const csv='external_id,sold_on,product,category,quantity,revenue,cmv,tax,card,commission,installments\nVENDA-001,2026-09-18,Caneca,Casa,1,20.00,10.00,1.00,0.50,1.00,1\n';
  await page.getByLabel('Escolha a planilha').setInputFiles({name:'vendas.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+ if(await page.getByLabel('Nome do mapeamento').isVisible()){
+  await page.getByLabel('Nome do mapeamento').fill('Colunas vendas');
+  await page.getByRole('button',{name:'Salvar mapeamento'}).click();
+  await expect(page.getByRole('status')).toContainText('Mapeamento salvo');
+ }
  await page.getByRole('button',{name:'Validar e visualizar'}).click();
  await page.getByRole('button',{name:'Confirmar importação'}).click();
  await expect(page.getByRole('status').filter({hasText:'1 registros importados com sucesso'})).toBeVisible();
@@ -81,6 +96,17 @@ test('workspace persists company, stock, bills, CSV and PDF; accessible on mobil
  await expect(page.getByRole('heading',{name:'O que merece atenção'})).toBeVisible();
  await expect(page.getByRole('button',{name:'Criar empresa',exact:true})).toHaveCount(0);
  await expect(page.getByRole('combobox',{name:'Sua empresa',exact:true})).toHaveCount(0);
+ for(const width of [360,768,1440,2560]){
+  await page.setViewportSize({width,height:1000});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+  if(width===2560){
+   const bounds=await page.locator('#workspace-main').boundingBox();
+   expect(bounds!.width).toBeGreaterThan(2200);
+   await page.screenshot({path:'output/analysis-wide.png',fullPage:true});
+  }
+ }
+ await page.setViewportSize({width:1440,height:1000});
+ expect((await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa']).analyze()).violations).toEqual([]);
  await page.screenshot({path:'output/analysis-desktop.png',fullPage:true});
  await page.getByRole('link',{name:'Planos de ação',exact:true}).click();
  await page.getByText('Criar plano de ação',{exact:true}).click();
@@ -116,6 +142,19 @@ test('workspace persists company, stock, bills, CSV and PDF; accessible on mobil
   await page.setViewportSize({width,height:900});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
  }
+ await page.getByRole('link',{name:'Integrações',exact:true}).first().click();
+ await expect(page.getByRole('cell',{name:'Importado',exact:true}).first()).toBeVisible();
+ await page.getByRole('link',{name:'Backups',exact:true}).click();
+ const backupDownload=page.waitForEvent('download');
+ await page.getByRole('button',{name:'Baixar backup da empresa'}).click();
+ const backup=await backupDownload;
+ expect(backup.suggestedFilename()).toMatch(/\.json\.gz$/);
+ const snapshot=JSON.parse(gunzipSync(readFileSync((await backup.path())!)).toString());
+ expect(snapshot.format).toBe('lucra-company');
+ expect(snapshot.records.products).toHaveLength(2);
+ expect(snapshot.records.customer_contacts[0].response).toBe('Retorna na próxima semana');
+ expect(snapshot.records.import_jobs.some((j:any)=>j.status==='imported')).toBeTruthy();
+ await expect(page.getByRole('status')).toContainText('Cópia gerada');
  await page.setViewportSize({width:360,height:800});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBeTruthy();
  const results=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();

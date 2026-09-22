@@ -1,4 +1,5 @@
 """Bounded, preview-first spreadsheet imports; all writes use the tenant RLS session."""
+import hashlib
 import base64
 import binascii
 import csv
@@ -20,6 +21,7 @@ MONEY = {'unit_cost','unit_price','revenue','cmv','tax','card','commission','amo
 
 class Spreadsheet(Input):
     kind: str
+    source_id: UUID | None = None
     filename: str = Field(max_length=180)
     content: str = Field(max_length=2800000)
     sheet: str | None = None
@@ -115,13 +117,35 @@ def inspect(company_id:UUID,body:Spreadsheet,db:Session=Depends(session)):
 def import_sheet(company_id:UUID,operation:str,body:Spreadsheet,db:Session=Depends(session)):
     if operation not in ('preview','confirm'): raise HTTPException(404)
     db.company(str(company_id))
-    parsed,errors=parse_sheet(body)
-    identity='sku' if body.kind=='products' else 'external_id'
-    existing={r.get(identity) for r in db.rows(body.kind,str(company_id))}
-    duplicates=[r[identity] for r in parsed if r[identity] in existing]
-    valid=bool(parsed) and not errors and not duplicates
-    if operation=='confirm':
-        if not valid: raise HTTPException(422,'Corrija os erros ou identificadores duplicados antes de importar.')
-        db.request('POST',body.kind,payload=[{**r,'company_id':str(company_id)} for r in parsed])
-        return {'imported':len(parsed)}
-    return {'rows':parsed,'errors':errors,'duplicates':duplicates,'can_import':valid}
+    cid=str(company_id)
+    source_id=str(body.source_id) if body.source_id else None
+    if source_id and not db.rows('integration_sources',cid,id='eq.'+source_id):
+        raise HTTPException(404,'Origem não encontrada nesta empresa.')
+    audit={'company_id':cid,'source_id':source_id,'kind':body.kind,
+           'filename':body.filename.replace('\\','/').split('/')[-1],
+           'fingerprint':hashlib.sha256(body.content.encode()).hexdigest()}
+    try:
+        parsed,errors=parse_sheet(body)
+        identity='sku' if body.kind=='products' else 'external_id'
+        existing={r.get(identity) for r in db.rows(body.kind,cid)}
+        duplicates=[r[identity] for r in parsed if r[identity] in existing]
+        valid=bool(parsed) and not errors and not duplicates
+        if operation=='confirm':
+            if not valid:
+                raise HTTPException(422,'Corrija os erros ou identificadores duplicados antes de importar.')
+            with db.transaction() as tx:
+                job=tx.insert('import_jobs',{**audit,'status':'imported','imported':len(parsed)})
+                saved=tx.request('POST',body.kind,payload=[{**r,'company_id':cid} for r in parsed])
+                if source_id:
+                    tx.request('POST','source_records',payload=[{'company_id':cid,'source_id':source_id,
+                        'job_id':job['id'],'kind':body.kind,'external_id':r[identity],'record_id':r['id']} for r in saved])
+            return {'imported':len(parsed),'job_id':job['id']}
+        if not valid:
+            db.insert('import_jobs',{**audit,'status':'rejected','rejected':len(errors)+len(duplicates),
+                                     'detail':'Validação: corrija campos inválidos ou identificadores repetidos.'})
+        return {'rows':parsed,'errors':errors,'duplicates':duplicates,'can_import':valid}
+    except HTTPException as error:
+        if error.status_code in (409,413,422):
+            db.insert('import_jobs',{**audit,'status':'rejected','rejected':1,
+                                     'detail':str(error.detail)[:500]})
+        raise
