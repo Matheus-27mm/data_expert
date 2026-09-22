@@ -448,6 +448,8 @@ Copie a URL completa do banco em **Neon → Connect → Postgres database**. Use
 | `NEON_TEST_DATABASE_URL` | PostgreSQL descartável para testes de integração/navegador | Nunca apontar para o banco de produção |
 | `API_PROXY_TARGET` | Destino do proxy Vite; padrão `http://127.0.0.1:8000` | Utilizada pelos testes para a porta 8011 |
 
+O frontend solicita o JWT assinado no endpoint `/token` do Neon Auth, com os cookies da sessão. Não envia o identificador opaco da sessão à API: a versão `0.5.0-beta` do SDK pode reutilizar o cache de `get-session` também em `token()`. A API continua validando assinatura, emissor, destinatário e expiração pelo JWKS.
+
 Os parâmetros JWT devem corresponder à configuração do seu projeto; a API rejeita tokens com assinatura, emissor, destinatário ou validade incorretos. Nunca desative a verificação para contornar um erro de login.
 
 **Domínios de produção:** em Neon → branch `production` → Auth → Configuration → Domains, autorize explicitamente `https://dataexpert-eight.vercel.app` e `https://dataexpert-matheus-projects-7084b636.vercel.app`. Informe apenas a origem, sem `/#/login` ou outro caminho. Ao trocar de domínio, atualize esta lista antes de disponibilizar o cadastro. `INVALID_ORIGIN` significa que o provedor recusou a origem; mudar o CORS do FastAPI não corrige essa configuração.

@@ -5,7 +5,17 @@ import {createInternalNeonAuth} from '@neondatabase/auth';
 const makeAuth = (url:string) => {
  const core=createInternalNeonAuth(url);
  return {getSession:()=>core.adapter.getSession(),signIn:core.adapter.signIn,signUp:core.adapter.signUp,
-  signOut:()=>core.adapter.signOut(),getAccessToken:()=>core.getJWTToken()};
+  signOut:()=>core.adapter.signOut(),getAccessToken:async()=>{
+   // A Better Auth session token may be opaque. Ask the JWT plugin explicitly
+   // for the signed token that our API verifies against the provider's JWKS.
+   // SDK 0.5.0-beta also routes adapter.token() through its get-session cache.
+   // Fetch the JWT endpoint directly so a cached session cannot replace it.
+   const response=await fetch(url.replace(/\/$/,'')+'/token',{credentials:'include',cache:'no-store'});
+   if(response.status===401)return null;
+   if(!response.ok)throw Error('Não foi possível validar sua sessão. Tente novamente.');
+   const data=await response.json();
+   return typeof data.token==='string'?data.token:null;
+  }};
 };
 type AuthClient = ReturnType<typeof makeAuth>;
 type AuthSession = {user: {id: string; email: string}};
