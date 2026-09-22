@@ -18,11 +18,12 @@ def session(authorization: str = Header(default='')):
         raise HTTPException(401,'Entre na sua conta para continuar.')
     token = authorization[7:]
     parsed=urlsplit(url)
-    audience = os.getenv('NEON_AUTH_AUDIENCE') or f'{parsed.scheme}://{parsed.netloc}'
+    origin = f'{parsed.scheme}://{parsed.netloc}'
+    audience = os.getenv('NEON_AUTH_AUDIENCE') or origin
     try:
         key = jwks_client(os.getenv('NEON_AUTH_JWKS_URL') or url+'/.well-known/jwks.json').get_signing_key_from_jwt(token)
         claims = jwt.decode(token,key.key,algorithms=['RS256','ES256','EdDSA'],
-            issuer=os.getenv('NEON_AUTH_ISSUER') or url,audience=audience,
+            issuer=os.getenv('NEON_AUTH_ISSUER') or origin,audience=audience,leeway=30,
             options={'require':['exp','sub','iss','aud']})
         if not isinstance(claims['sub'],str) or not claims['sub']:
             raise jwt.InvalidTokenError()

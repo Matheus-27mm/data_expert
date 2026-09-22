@@ -439,7 +439,7 @@ Copie a URL completa do banco em **Neon → Connect → Postgres database**. Use
 | `DATABASE_URL` | Conexão PostgreSQL, incluindo senha | Privada; somente servidor |
 | `NEON_AUTH_URL` | Endpoint público do Neon Auth | Pode ser enviado ao navegador |
 | `NEON_AUTH_JWKS_URL` | Opcional; padrão: Auth URL + `/.well-known/jwks.json` | URL das chaves públicas |
-| `NEON_AUTH_ISSUER` | Opcional; padrão: Auth URL | Emissor esperado do JWT |
+| `NEON_AUTH_ISSUER` | Opcional; padrão: origem da Auth URL, sem o caminho `/neondb/auth` | Emissor esperado do JWT |
 | `NEON_AUTH_AUDIENCE` | Opcional; padrão: origem da Auth URL, sem o caminho `/neondb/auth` | Destinatário esperado do JWT |
 | `STATIC_DIR` | Diretório do frontend compilado | `/app/dist` no Docker |
 | `BACKUP_KEY` | Chave Fernet para criptografar e recuperar backups | Privada; local seguro e GitHub Secrets |
@@ -450,7 +450,7 @@ Copie a URL completa do banco em **Neon → Connect → Postgres database**. Use
 
 O frontend solicita o JWT assinado no endpoint `/token` do Neon Auth, com os cookies da sessão. Não envia o identificador opaco da sessão à API: a versão `0.5.0-beta` do SDK pode reutilizar o cache de `get-session` também em `token()`. A API continua validando assinatura, emissor, destinatário e expiração pelo JWKS.
 
-Os parâmetros JWT devem corresponder à configuração do seu projeto; a API rejeita tokens com assinatura, emissor, destinatário ou validade incorretos. Nunca desative a verificação para contornar um erro de login.
+Os parâmetros JWT devem corresponder à configuração do seu projeto; a API rejeita tokens com assinatura, emissor, destinatário ou validade incorretos. A validação admite até 30 segundos de diferença de relógio. Tokens de usuários autenticados usam a origem do provedor como emissor; não derive esse valor de um token anônimo. Nunca desative a verificação para contornar um erro de login.
 
 **Domínios de produção:** em Neon → branch `production` → Auth → Configuration → Domains, autorize explicitamente `https://dataexpert-eight.vercel.app` e `https://dataexpert-matheus-projects-7084b636.vercel.app`. Informe apenas a origem, sem `/#/login` ou outro caminho. Ao trocar de domínio, atualize esta lista antes de disponibilizar o cadastro. `INVALID_ORIGIN` significa que o provedor recusou a origem; mudar o CORS do FastAPI não corrige essa configuração.
 
