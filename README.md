@@ -450,6 +450,8 @@ Copie a URL completa do banco em **Neon → Connect → Postgres database**. Use
 
 Os parâmetros JWT devem corresponder à configuração do seu projeto; a API rejeita tokens com assinatura, emissor, destinatário ou validade incorretos. Nunca desative a verificação para contornar um erro de login.
 
+**Domínios de produção:** em Neon → branch `production` → Auth → Configuration → Domains, autorize explicitamente `https://dataexpert-eight.vercel.app` e `https://dataexpert-matheus-projects-7084b636.vercel.app`. Informe apenas a origem, sem `/#/login` ou outro caminho. Ao trocar de domínio, atualize esta lista antes de disponibilizar o cadastro. `INVALID_ORIGIN` significa que o provedor recusou a origem; mudar o CORS do FastAPI não corrige essa configuração.
+
 Cadastre `http://localhost:5173`, `http://127.0.0.1:5173` e a origem publicada da aplicação nos domínios permitidos do Neon Auth. Adicione `http://127.0.0.1:8080` se utilizar Docker local. Configure também a verificação de e-mail no provedor.
 
 Não coloque `DATABASE_URL` em variáveis com prefixo `VITE_`. O endpoint `/api/config` retorna somente o estado da configuração e a URL pública de autenticação.

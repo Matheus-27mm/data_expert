@@ -3,10 +3,12 @@ import AxeBuilder from '@axe-core/playwright';
 
 test('login, settings and logout work across desktop and mobile',async({page})=>{
  let signedIn=false;
+ let rejectOrigin=true;
  const identity={user:{id:'owner-a',name:'Ana',email:'ana@example.test',emailVerified:true,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()},session:{id:'session-a',userId:'owner-a',token:'test-token',expiresAt:new Date(Date.now()+3600000).toISOString()}};
  await page.route('**/api/config',r=>r.fulfill({json:{configured:true,neon_auth_url:'https://auth.example.test/auth'}}));
  await page.route('https://auth.example.test/**',async r=>{
   const path=new URL(r.request().url()).pathname;
+  if(path.endsWith('/sign-in/email')&&rejectOrigin){rejectOrigin=false;await r.fulfill({status:403,json:{code:'INVALID_ORIGIN',message:'Invalid origin'}});return;}
   if(path.endsWith('/sign-in/email'))signedIn=true;
   if(path.endsWith('/sign-out'))signedIn=false;
   await r.fulfill({json:path.endsWith('/token')?{token:'test-token'}:signedIn?identity:null});
@@ -32,6 +34,8 @@ test('login, settings and logout work across desktop and mobile',async({page})=>
  await page.getByRole('button',{name:'Mostrar senha'}).click();
  await expect(page.getByLabel('Senha',{exact:true})).toHaveAttribute('type','text');
  await page.getByRole('button',{name:'Ocultar senha'}).click();
+ await page.getByRole('button',{name:'Entrar na minha empresa'}).click();
+ await expect(page.getByRole('alert')).toContainText('Este endereço ainda não está autorizado');
  await page.getByRole('button',{name:'Entrar na minha empresa'}).click();
  await expect(page.getByRole('heading',{name:'Visão geral',exact:true})).toBeVisible();
  await page.getByRole('link',{name:'Configurações',exact:true}).click();
