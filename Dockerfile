@@ -4,6 +4,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY index.html tsconfig.json vite.config.ts ./
 COPY src ./src
+COPY public ./public
+COPY finance.mp4 ./finance.mp4
 RUN npm run build
 
 FROM python:3.12-slim AS runtime

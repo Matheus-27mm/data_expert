@@ -14,6 +14,13 @@ test('login, settings and logout work across desktop and mobile',async({page})=>
  await page.route('**/api/workspace/**',r=>r.fulfill({json:r.request().url().endsWith('/companies')?[{id:'store-a',name:'Loja da Ana'}]:{company:'Loja da Ana',start:'2026-09-01',end:'2026-09-30',totals:{revenue:0,cmv:0,tax:0,card:0,commission:0,net:0,expenses:0,refunds:0,cost_recovered:0,operating:0},products:[]}}));
  await page.goto('/');
  await expect(page.getByRole('heading',{name:'Bom ter você de volta.'})).toBeVisible();
+ const background=page.locator('.auth-video-backdrop video');
+ await expect.poll(()=>background.evaluate((v:HTMLVideoElement)=>v.readyState)).toBeGreaterThanOrEqual(2);
+ await expect.poll(()=>background.evaluate((v:HTMLVideoElement)=>!v.paused)).toBe(true);
+ expect(await background.evaluate((v:HTMLVideoElement)=>v.muted&&v.loop&&v.playsInline)).toBe(true);
+ await page.getByRole('button',{name:'Pausar vídeo de fundo'}).click();
+ await expect.poll(()=>background.evaluate((v:HTMLVideoElement)=>v.paused)).toBe(true);
+ await background.evaluate((v:HTMLVideoElement)=>new Promise<void>(resolve=>{v.addEventListener('seeked',()=>resolve(),{once:true});v.currentTime=3}));
  for(const width of [360,768,1440]){
   await page.setViewportSize({width,height:900});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
@@ -42,6 +49,8 @@ test('login, settings and logout work across desktop and mobile',async({page})=>
  await page.screenshot({path:'output/login-mobile.png',fullPage:true});
  await page.reload();
  await expect(page.getByRole('heading',{name:'Bom ter você de volta.'})).toBeVisible();
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await expect.poll(()=>background.evaluate((v:HTMLVideoElement)=>v.paused)).toBe(true);
  await page.getByRole('button',{name:'Criar conta',exact:true}).click();
  await expect(page.getByLabel('Senha',{exact:true})).toHaveAttribute('autocomplete','new-password');
 });

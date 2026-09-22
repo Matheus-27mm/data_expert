@@ -128,7 +128,7 @@ A navegação utiliza fragmentos de URL (`#/...`), permitindo acessar diretament
 
 ### Acesso e configurações
 
-A página inicial abre a tela de login quando não há sessão. Ela inclui criação de conta, visualização opcional da senha, mensagens de autenticação e confirmação de cadastro. A autenticação continua sendo realizada pelo Neon Auth.
+A página inicial abre a tela de login quando não há sessão. O formulário fica em um cartão translúcido centralizado sobre o vídeo `finance.mp4`, importado da raiz pelo Vite. O fundo ocupa toda a tela, toca sem áudio em loop e pode ser pausado; a preferência de movimento reduzido mantém o vídeo pausado. A imagem `public/media/finance-poster.jpg` serve de fundo durante o carregamento ou quando o vídeo não está disponível. Ela inclui criação de conta, visualização opcional da senha, mensagens de autenticação e confirmação de cadastro. A autenticação continua sendo realizada pelo Neon Auth.
 
 Na sidebar, **Configurações** mostra o e-mail da conta, a empresa selecionada e um atalho para cadastrar taxas e condições de parcelamento. **Sair da conta** encerra a sessão no provedor, limpa os dados da empresa na interface e retorna ao login. No celular, abra o menu pelo botão no cabeçalho.
 
