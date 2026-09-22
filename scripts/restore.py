@@ -21,8 +21,13 @@ def restore(path):
     run_pg('pg_restore',['--dbname='+target.split('/')[-1].split('?')[0],'--no-owner','--no-acl','--single-transaction','--exit-on-error'],target,content=content)
     with psycopg.connect(target,connect_timeout=15) as conn:
         conn.execute('grant usage on schema public,lucra_private to lucra_app')
-        conn.execute('grant select,insert on public.companies,public.sales,public.products,public.expenses,public.adjustments,public.settlements,public.payment_terms,public.report_history,public.report_schedules,public.stock_movements,public.bills,public.bill_payments to lucra_app')
-        conn.execute('grant update on public.companies,public.products,public.payment_terms,public.report_schedules to lucra_app')
+        from backend.neon_repository import TABLES
+        # Older backups may predate a table: restore available privileges, then migrate.
+        existing={r[0] for r in conn.execute("select tablename from pg_tables where schemaname='public'")}
+        for table in sorted((TABLES-{'report_deliveries'}) & existing):
+            conn.execute(psycopg.sql.SQL('grant select,insert on public.{} to lucra_app').format(psycopg.sql.Identifier(table)))
+        for table in {'companies','products','payment_terms','report_schedules','action_plans'} & existing:
+            conn.execute(psycopg.sql.SQL('grant update on public.{} to lucra_app').format(psycopg.sql.Identifier(table)))
     print('Business data restored. Authentication accounts remain managed by Neon Auth.')
 
 if __name__=='__main__':

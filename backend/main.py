@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from .finance import demo_sales, summarize, simulate
 from .report import report_pdf
 from .workspace import router as workspace_router
+from . import spreadsheets  # register spreadsheet routes before mounting
 from .observability import request_log
 
 app = FastAPI(title='Lucra API', version='1.0.0', docs_url='/api/docs', redoc_url='/api/redoc', openapi_url='/api/openapi.json')
@@ -45,7 +46,7 @@ def readiness():
     try:
         with psycopg.connect(os.environ['DATABASE_URL'],connect_timeout=5) as conn:
             applied={r[0] for r in conn.execute('select name from public.lucra_migrations').fetchall()}
-        if not {'001_initial.sql','002_workspace.sql','003_inventory_payables.sql'}<=applied:
+        if not {'001_initial.sql','002_workspace.sql','003_inventory_payables.sql','004_business_history.sql'}<=applied:
             return JSONResponse({'status':'unavailable'},status_code=503)
         return {'status':'ok','mode':'neon'}
     except psycopg.Error:

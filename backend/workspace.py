@@ -141,7 +141,30 @@ def create_company(body: Company,db: Session=Depends(session)):
 def dashboard(company_id: UUID,period: Period='monthly',anchor: date | None=None,db: Session=Depends(session)):
     return company_summary(db,str(company_id),period,anchor or date.today())
 
-TABLES = {'products':Product,'sales':Sale,'expenses':Expense,'adjustments':Adjustment,
+class ActionPlan(Input):
+    title: str = Field(min_length=2,max_length=160)
+    description: str = Field(default='',max_length=4000)
+    priority: Literal['high','medium','low'] = 'medium'
+    status: Literal['pending','progress','done'] = 'pending'
+    due_on: date | None = None
+
+class PlanUpdate(Input):
+    plan_id: UUID
+    message: str = Field(min_length=1,max_length=4000)
+
+class Customer(Input):
+    name: str = Field(min_length=2,max_length=160)
+    email: str = Field(default='',max_length=254)
+    phone: str = Field(default='',max_length=40)
+
+class CustomerContact(Input):
+    customer_id: UUID
+    channel: Literal['phone','email','whatsapp','store','other']
+    message: str = Field(min_length=1,max_length=4000)
+    response: str = Field(default='',max_length=4000)
+    next_on: date | None = None
+
+TABLES = {'action_plans':ActionPlan,'plan_updates':PlanUpdate,'customers':Customer,'customer_contacts':CustomerContact,'products':Product,'sales':Sale,'expenses':Expense,'adjustments':Adjustment,
           'settlements':Settlement,'payment_terms':Terms,'report_schedules':Schedule,
           'stock_movements':StockMovement,'bills':Bill,'bill_payments':BillPayment}
 
@@ -176,7 +199,7 @@ def create_record(company_id:UUID,table:str,body:dict,db:Session=Depends(session
 @router.patch('/{company_id}/records/{table}/{record_id}')
 def update_record(company_id:UUID,table:str,record_id:UUID,body:dict,db:Session=Depends(session)):
     from pydantic import ValidationError
-    if table not in ('products','payment_terms','report_schedules'):
+    if table not in ('products','payment_terms','report_schedules','action_plans'):
         raise HTTPException(405,'Lançamentos financeiros são imutáveis. Registre um ajuste.')
     db.company(str(company_id))
     try:

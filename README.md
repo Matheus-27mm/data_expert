@@ -6,13 +6,13 @@ O **Lucra**, desenvolvido no repositório `data_expert`, transforma registros di
 
 O sistema reúne um dashboard financeiro, cadastros de produtos e vendas, registro de despesas e recebimentos, movimentações de estoque, contas a pagar e relatórios em PDF. A análise de margem ajuda a identificar situações em que vender bastante não significa ganhar dinheiro: impostos, taxas de cartão e comissões podem consumir a diferença entre preço de venda e custo de aquisição.
 
-A proposta atual é oferecer **controle básico da empresa com dados informados pelo usuário**, manualmente ou por CSV. A demonstração permite conhecer os indicadores com dados fictícios; a área autenticada permite cadastrar empresas e manter seus registros no Neon PostgreSQL.
+A proposta atual é oferecer **controle básico da empresa com dados informados pelo usuário**, manualmente ou por planilhas CSV e Excel (.xlsx). A demonstração permite conhecer os indicadores com dados fictícios; a área autenticada permite cadastrar empresas e manter seus registros no Neon PostgreSQL.
 
 [![Validação do projeto](https://github.com/Matheus-27mm/data_expert/actions/workflows/ci.yml/badge.svg)](https://github.com/Matheus-27mm/data_expert/actions/workflows/ci.yml)
 
 **[Acessar o sistema](https://dataexpert-eight.vercel.app/#/workspace/dashboard)** · **[Ver demonstração](https://dataexpert-eight.vercel.app/#/demo/overview)** · **[Repositório](https://github.com/Matheus-27mm/data_expert)** · **[Documentação da API](https://dataexpert-eight.vercel.app/api/docs)**
 
-> **Estado verificado em 18/09/2026:** aplicação publicada na Vercel, Neon conectado, três migrações aplicadas e primeiro backup criptografado executado e validado. Os testes de navegador usam identidade simulada; o fluxo de cadastro/login com uma conta real da equipe ainda precisa ser validado de ponta a ponta.
+> **Atualização de 22/09/2026:** navegação organizada por áreas, análises executivas, planos de ação, histórico de clientes e central de importação CSV/Excel. O login real foi validado com uma conta temporária; os testes automatizados de navegador simulam apenas a identidade e usam PostgreSQL real para os dados de negócio.
 
 | Componente | Estado atual |
 | --- | --- |
@@ -21,7 +21,7 @@ A proposta atual é oferecer **controle básico da empresa com dados informados 
 | Autenticação | Neon Auth integrado; origens local e publicada verificadas |
 | Backup dos dados de negócio | Automático, diariamente às 10:00 UTC / 06:00 em Manaus; retenção de 14 dias |
 | Monitoramento básico | Check diário de prontidão e logs com identificador de requisição |
-| Verificação automatizada | 32 testes de backend e 2 fluxos de navegador aprovados na entrega funcional |
+| Verificação automatizada | Suíte de backend, integração PostgreSQL/RLS e fluxos de navegador no GitHub Actions |
 | Envio de relatórios por e-mail | Preparado no código, desativado por decisão da equipe |
 | Hospedagem Docker remota | Adiada; execução local e workflow de publicação de imagem disponíveis |
 
@@ -144,7 +144,7 @@ Na sidebar, **Configurações** mostra o e-mail da conta, a empresa selecionada 
 | Recebimentos | Vincular um crédito e sua referência à venda | Registrar o valor efetivamente recebido |
 | Conciliação | Comparar valores esperados e recebidos | Identificar vendas pendentes, conciliadas ou recebidas a maior |
 | Condições | Cadastrar taxas e número de parcelas | Manter parâmetros de referência, sem alterar vendas existentes |
-| Importar CSV | Validar o arquivo de vendas e confirmar o lote | Cadastrar várias vendas em uma transação |
+| Importações | Ler CSV/Excel, relacionar colunas e validar registros | Importar produtos, vendas e despesas em lote |
 | Relatórios | Escolher período e gerar PDF | Salvar uma fotografia dos indicadores no histórico |
 | Estoque | Consultar saldo por SKU/produto | Ver entradas menos saídas registradas |
 | Movimentar estoque | Registrar entrada ou saída com referência única | Alterar o saldo; saídas acima do saldo são bloqueadas |
@@ -180,6 +180,57 @@ Os números são didáticos. Use os custos, impostos e taxas efetivos da empresa
 ### Identidade visual
 
 A marca Lucra usa um monograma geométrico em L, com abertura e detalhe quadrado. Os arquivos vetoriais ficam em `public/brand`: `lucra-dark.svg` para fundos claros, `lucra-light.svg` para fundos escuros, `lucra-symbol.svg` para uso isolado e `favicon.svg` para a aba do navegador. O login e os menus compartilham essas versões, sem dependência de fontes externas para desenhar a marca.
+
+### Análises, planos de ação e relacionamento
+
+A sidebar está organizada em **Visão e estratégia**, **Operação** e **Dados e documentos**. As operações secundárias ficam em abas dentro da respectiva área: devoluções e conciliação em Vendas; despesas, cadastro e pagamento de contas em Contas a pagar; movimentações em Estoque. Os formulários manuais são abertos por **Adicionar registro**.
+
+O cadastro de empresa aparece no primeiro acesso sem empresa e em **Configurações**. A empresa ativa é lembrada por usuário no navegador. Quando há mais de uma empresa, a troca é feita nas configurações. O identificador local não concede acesso: o servidor continua verificando a identidade e as políticas RLS em cada operação.
+
+| Área | Conteúdo e funcionamento |
+| --- | --- |
+| Análises | Receita, resultado das vendas, despesas, resultado operacional e gráfico diário, com filtro diário/semanal/mensal |
+| Radar operacional | Produtos/parcelamentos deficitários no período; contas vencidas e estoque sem saldo na posição atual |
+| Recomendações | Regras verificáveis sobre margem negativa, despesas, vencimentos e estoque; cada sugestão pode virar um plano |
+| Planos de ação | Título, objetivo, prioridade, prazo, andamento e histórico de respostas/atualizações do empresário |
+| Clientes | Nome, e-mail e telefone, com contatos por WhatsApp, telefone, e-mail, loja ou outro canal |
+| Histórico de atendimentos | Contato realizado, resposta do cliente e data do próximo retorno, preservados por cliente |
+
+Os contatos são registrados manualmente. Selecionar WhatsApp ou e-mail identifica o canal; não envia mensagens nem conecta essas plataformas. Os históricos de atendimento e de acompanhamento são registros independentes dos lançamentos financeiros. Recomendações usam regras sobre os dados cadastrados, sem alegar análise por IA. O resultado operacional não equivale ao saldo bancário.
+
+### Central de leitura de planilhas
+
+1. Abra **Importações** e escolha **Produtos**, **Vendas** ou **Despesas**.
+2. Selecione um arquivo **CSV UTF-8** (vírgula, ponto e vírgula ou tabulação) ou **Excel .xlsx**.
+3. Se houver várias abas, escolha a desejada. A tela informa a quantidade de registros e mostra as primeiras cinco linhas.
+4. Relacione cada campo do sistema à coluna correspondente. Campos obrigatórios têm asterisco; cabeçalhos equivalentes são relacionados automaticamente.
+5. Clique em **Validar e visualizar**. Corrija erros de dados e identificadores duplicados.
+6. Clique em **Confirmar importação**. A validação é repetida no servidor; qualquer conflito cancela o lote inteiro.
+
+**Limites:** 2 MB por arquivo, 1.000 registros e 40 colunas. Excel é lido sem executar fórmulas; arquivos contendo fórmulas devem ser exportados como valores. Arquivos XLS antigos e macros não são aceitos. Datas aceitam `AAAA-MM-DD`, `DD/MM/AAAA` e células de data do Excel. Valores monetários são em reais, como `1234.56` ou `1.234,56`, com até duas casas decimais. A API converte esses valores em centavos antes de persistir.
+
+| Importação | Identificador único na empresa | Campos obrigatórios |
+| --- | --- | --- |
+| Produtos | `sku` | `sku`, `name`, `category`, `unit_cost`, `unit_price` |
+| Vendas | `external_id` | `external_id`, `sold_on`, `product`, `category`, `quantity`, `revenue`, `cmv`, `tax`, `card`, `commission`, `installments` |
+| Despesas | `external_id` | `external_id`, `description`, `category`, `incurred_on`, `amount` |
+
+A importação adiciona registros; não substitui produtos existentes. Referências repetidas no arquivo ou já cadastradas impedem a confirmação. Importar produtos não cria saldo de estoque, e importar vendas não registra automaticamente pagamentos ou saídas de estoque. A importação de recebimentos permanece em **Importações → Importar recebimentos**, com o modelo CSV específico descrito adiante.
+
+**Rotas adicionais autenticadas:**
+
+| Método | Rota (prefixo `/api/workspace`) | Função |
+| --- | --- | --- |
+| POST | `/{company_id}/spreadsheets/read` | Ler cabeçalhos, abas, amostra e campos esperados |
+| POST | `/{company_id}/spreadsheets/preview` | Validar mapeamento, valores e duplicidades |
+| POST | `/{company_id}/spreadsheets/confirm` | Revalidar e salvar todo o lote em uma transação |
+| GET / POST | `/{company_id}/records/action_plans` | Consultar/criar planos |
+| PATCH | `/{company_id}/records/action_plans/{id}` | Atualizar dados e andamento do plano |
+| GET / POST | `/{company_id}/records/plan_updates` | Consultar/adicionar respostas ao plano |
+| GET / POST | `/{company_id}/records/customers` | Consultar/cadastrar clientes |
+| GET / POST | `/{company_id}/records/customer_contacts` | Consultar/adicionar atendimentos |
+
+Os endpoints de planilhas recebem `{kind, filename, content, sheet, mapping}`, com `content` em Base64, `sheet` opcional e `mapping` no formato `{campo_do_sistema: cabeçalho_do_arquivo}`. A migração `004_business_history.sql` cria os históricos, as políticas RLS e as chaves compostas que impedem vincular uma resposta ou atendimento a registros de outra empresa. Também adiciona a referência externa única para despesas importadas. A restauração de backup reaplica os privilégios das novas tabelas.
 
 ## 3. Tecnologias e arquitetura
 
@@ -519,7 +570,7 @@ Margem (%) = resultado das vendas / receita × 100
 
 Sem receita, a margem retornada é zero. Os produtos são agrupados por nome, categoria e parcelas, ordenados por unidades vendidas decrescentes; em empate, pelo resultado crescente.
 
-O campo `daily` contém valores de cada dia. O gráfico React acumula esses valores dentro do período selecionado.
+O campo `daily` contém valores de cada dia. Na demonstração, o gráfico acumula esses valores; em Análises, mostra o resultado individual de cada dia.
 
 ### 9.3. Simulador
 
@@ -755,8 +806,8 @@ Cada empresa pertence a um usuário. As políticas limitam consultas e gravaçõ
 ### Uso da área da empresa
 
 1. Abra a página inicial ou `/#/login` e crie sua conta ou faça login. A demonstração continua acessível pelo link **Explorar demonstração**.
-2. Crie uma empresa e selecione-a no cabeçalho.
-3. Cadastre produtos e vendas ou importe um CSV pela tela **Importar CSV**.
+2. Cadastre sua empresa no primeiro acesso. Ela será ativada automaticamente; a troca fica em Configurações.
+3. Cadastre produtos e vendas ou leia planilhas CSV/Excel pela central **Importações**.
 4. Registre despesas, recebimentos e devoluções para compor o resultado operacional.
 5. Consulte a conciliação e gere relatórios preservados no histórico.
 6. Em **Movimentar estoque**, registre o saldo inicial, entradas e saídas. O cadastro de uma venda não movimenta estoque automaticamente; registre a saída correspondente.
@@ -766,7 +817,7 @@ Cada empresa pertence a um usuário. As políticas limitam consultas e gravaçõ
 
 Estoque, contas e pagamentos são registros imutáveis. O estoque admite correção por movimento inverso. Não existe cancelamento/edição de contas já lançadas nesta versão; confira os valores antes de confirmar.
 
-O CSV utiliza vírgulas, datas `AAAA-MM-DD` e valores em reais com ponto decimal. Há limite de 1.000 vendas e 2 MB por envio. Baixe o modelo na interface, confira a prévia e confirme a importação. Um conflito cancela todo o lote. O identificador externo evita importar novamente a mesma venda.
+O CSV utiliza vírgulas, datas `AAAA-MM-DD` e valores em reais com ponto decimal. Há limite de 1.000 vendas e 2 MB por envio. Use os cabeçalhos documentados abaixo ou relacione as colunas na central de importações, confira a prévia e confirme. Um conflito cancela todo o lote. O identificador externo evita importar novamente a mesma venda.
 
 ### Importação de vendas por CSV
 
@@ -933,7 +984,7 @@ Os testes financeiros verificam:
 
 Os testes de PDF conferem assinatura do arquivo e cabeçalhos HTTP; não substituem inspeção visual. Os testes adicionais cobrem JWTs inválidos, configuração sem exposição de senha, importação CSV, relatórios e destinatários de agendamentos.
 
-Para os testes de integração, defina `NEON_TEST_DATABASE_URL` apontando para um PostgreSQL **descartável**. Eles aplicam migrações e verificam RLS entre usuários, devoluções, rollback integral de importações duplicadas, filtros de datas, snapshots e edição de produtos. Sem essa variável, os três testes de integração PostgreSQL são pulados. O CI fornece PostgreSQL 18 para executá-los. A autenticação remota deve ser conferida com uma conta da equipe e os domínios autorizados no Neon.
+Para os testes de integração, defina `NEON_TEST_DATABASE_URL` apontando para um PostgreSQL **descartável**. Eles aplicam migrações e verificam RLS entre usuários, devoluções, rollback integral de importações duplicadas, filtros de datas, snapshots e edição de produtos. Sem essa variável, os testes de integração PostgreSQL são pulados. O CI fornece PostgreSQL 18 para executá-los. A autenticação remota deve ser conferida com uma conta da equipe e os domínios autorizados no Neon.
 
 ### Testes de navegador
 
@@ -1072,4 +1123,4 @@ O escopo atual é controle básico da empresa. Por decisão da equipe, envio por
 
 ### Monitoramento básico
 
-`/api/health` verifica a API; `/api/ready` verifica a conexão e as três migrações esperadas. Respostas incluem `X-Request-ID`. Os logs da aplicação registram método, rota, status e duração, sem corpo, token ou query string. O workflow operacional consulta a prontidão diariamente quando a variável `PUBLIC_APP_URL` estiver configurada no GitHub, após a publicação. Logs e checks não substituem um serviço externo de alertas em tempo real.
+`/api/health` verifica a API; `/api/ready` verifica a conexão e as quatro migrações esperadas. Respostas incluem `X-Request-ID`. Os logs da aplicação registram método, rota, status e duração, sem corpo, token ou query string. O workflow operacional consulta a prontidão diariamente quando a variável `PUBLIC_APP_URL` estiver configurada no GitHub, após a publicação. Logs e checks não substituem um serviço externo de alertas em tempo real.

@@ -87,3 +87,22 @@ def test_inventory_bills_and_bank_import(database):
     other=Session('',{'id':str(uuid4()),'email':''})
     for table in ('stock_movements','bills','bill_payments'):
         assert other.rows(table,cid)==[]
+
+def test_history_rls_and_composite_links(database):
+    a=Session('',{'id':str(uuid4())});b=Session('',{'id':str(uuid4())})
+    ca=a.insert('companies',{'name':'History A','owner_id':a.user['id']})['id']
+    cb=b.insert('companies',{'name':'History B','owner_id':b.user['id']})['id']
+    plan=a.insert('action_plans',{'company_id':ca,'title':'Review margin','priority':'high'})
+    customer=a.insert('customers',{'company_id':ca,'name':'Customer A'})
+    for table,values in [('plan_updates',{'plan_id':plan['id'],'message':'Reviewed'}),('customer_contacts',{'customer_id':customer['id'],'channel':'store','message':'Visited','response':'Will return'})]:
+        a.insert(table,{'company_id':ca,**values})
+        assert b.rows(table,ca)==[]
+        with pytest.raises(HTTPException): b.insert(table,{'company_id':cb,**values})
+        with pytest.raises(HTTPException): b.insert(table,{'company_id':ca,**values})
+    assert b.rows('customers',ca)==[] and b.rows('action_plans',ca)==[]
+    assert b.request('PATCH','action_plans',params={'id':'eq.'+plan['id']},payload={'status':'done'})==[]
+    assert a.request('PATCH','action_plans',params={'id':'eq.'+plan['id']},payload={'status':'done'})[0]['status']=='done'
+    expense={'company_id':ca,'external_id':'expense-1','description':'Import','category':'Test','incurred_on':'2026-09-22','amount':100}
+    a.insert('expenses',expense)
+    with pytest.raises(HTTPException): a.request('POST','expenses',payload=[{**expense,'external_id':'expense-2'},expense])
+    assert not a.rows('expenses',ca,external_id='eq.expense-2')
