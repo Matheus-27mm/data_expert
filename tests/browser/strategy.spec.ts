@@ -14,6 +14,12 @@ test('simulator loads catalog without receivables; action plans persist progress
  fail=false;await page.getByRole('button',{name:'Tentar novamente'}).click();
  await page.getByLabel('Produto 1',{exact:true}).selectOption(product.id);
  await expect(page.getByText('R$ 60,00',{exact:true})).toBeVisible();
+ const installments=page.getByRole('combobox',{name:'Parcelas',exact:true});
+ await expect(installments).toHaveValue('1');
+ await expect(installments.locator('option')).toHaveCount(12);
+ await expect(installments.locator('option[value="0"]')).toHaveCount(0);
+ await installments.selectOption('12');
+ await expect(page.getByText('R$ 60,00',{exact:true})).toBeVisible();
  expect(receivables).toBe(0);
  await expect(page.getByLabel('Data da venda',{exact:true})).toHaveCount(0);
  await page.screenshot({path:'output/review/simulator-refined.png',fullPage:true});
@@ -23,6 +29,10 @@ test('simulator loads catalog without receivables; action plans persist progress
  await page.getByLabel('Objetivo e próximos passos').fill('Comparar custos e preços.');
  await page.getByLabel('Prazo do plano').fill('2026-01-01');
  await page.getByRole('button',{name:'Salvar plano',exact:true}).click();
+ await page.getByRole('button',{name:'Iniciar plano',exact:true}).click();
+ await page.getByRole('button',{name:'Marcar como concluído',exact:true}).click();
+ await expect(page.getByRole('region',{name:'Concluído',exact:true}).getByText('Revisar margem',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Reabrir plano',exact:true}).click();
  await page.getByRole('button',{name:/Prioridade média Revisar margem/}).click();
  await page.getByRole('combobox',{name:'Andamento',exact:true}).selectOption('progress');
  await expect(page.getByRole('combobox',{name:'Andamento',exact:true})).toHaveValue('progress');
