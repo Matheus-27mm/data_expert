@@ -11,7 +11,7 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException
 from pydantic import Field
-from .workspace import router, Input, Product, Sale, Expense, Session, session
+from .workspace import router, Input, Product, Sale, Expense, Session, session, MONEY_MAX
 
 class ExpenseImport(Expense):
     external_id: str = Field(min_length=1,max_length=120)
@@ -93,7 +93,7 @@ def parse_sheet(body):
                     text=str(v).strip().replace('R$','').replace(' ','')
                     if ',' in text: text=text.replace('.','').replace(',','.')
                     amount=Decimal(text)
-                    if not amount.is_finite() or amount.as_tuple().exponent < -2: raise ValueError('Valor monetário inválido.')
+                    if not amount.is_finite() or amount<0 or amount>MONEY_MAX/100 or amount.as_tuple().exponent < -2: raise ValueError('Valor monetário inválido.')
                     values[k]=int(amount*100)
                 if k.endswith('_on'):
                     if isinstance(v,datetime): values[k]=v.date().isoformat()

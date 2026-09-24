@@ -51,3 +51,8 @@ def test_confirm_revalidates_and_blocks_existing_identifier():
     assert not result['can_import'] and result['duplicates']==['A']
     with pytest.raises(HTTPException): import_sheet(uuid4(),'confirm',data,db)
     assert db.writes==0
+
+
+def test_import_rejects_extreme_exponent_before_integer_conversion():
+    rows,errors=parse_sheet(payload('sku,name,category,unit_cost,unit_price\nA,C,C,1.00,1e1000000'))
+    assert rows==[] and len(errors)==1

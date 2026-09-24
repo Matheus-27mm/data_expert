@@ -1,5 +1,7 @@
 # Lucra — clareza para decidir melhor
 
+📋 **[Checklist de revisão e roteiro de apresentação](docs/CHECKLIST_APRESENTACAO.md)** — revisão de 23/09/2026.
+
 **Sistema web de controle financeiro e operacional para acompanhar vendas, custos, despesas, estoque, recebimentos e contas a pagar em um só lugar.**
 
 O **Lucra**, desenvolvido no repositório `data_expert`, transforma registros dispersos da empresa em uma visão organizada do que foi vendido, dos custos envolvidos, do que entrou, do que ainda precisa ser pago e do saldo de produtos em estoque. Seu objetivo é apoiar o acompanhamento diário e a tomada de decisão de pequenos negócios, sem exigir que o proprietário interprete planilhas separadas para cada atividade.

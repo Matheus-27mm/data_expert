@@ -66,7 +66,7 @@ def test_other_company_not_accessible(workspace):
 def test_csv_exact_cents_and_validation():
     rows,errors=parse_csv(CSV)
     assert not errors and rows[0]['card']==2350
-    for bad in ['NaN','Infinity','1.001','-1']:
+    for bad in ['NaN','Infinity','1.001','-1','1e1000000']:
         assert parse_csv(CSV.replace('200.00',bad))[1]
     assert parse_csv(CSV+CSV.splitlines()[1]+'\n')[1]
     with pytest.raises(HTTPException):parse_csv('bad,header\n1,2')

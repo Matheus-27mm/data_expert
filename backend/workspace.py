@@ -224,7 +224,7 @@ def parse_csv(content):
         try:
             for key in ('revenue','cmv','tax','card','commission'):
                 number = Decimal(row[key])
-                if not number.is_finite() or number < 0 or number.as_tuple().exponent < -2:
+                if not number.is_finite() or number < 0 or number > MONEY_MAX/100 or number.as_tuple().exponent < -2:
                     raise ValueError('Valores monetários devem ter até duas casas decimais.')
                 row[key] = int(number*100)
             record = Sale.model_validate(row).model_dump(mode='json')
@@ -307,7 +307,7 @@ def bank_preview(db,cid,content):
         try:
             if None in row or not sales.get(row['external_id']): raise ValueError()
             value=Decimal(row['amount'])
-            if not value.is_finite() or value<=0 or value.as_tuple().exponent < -2: raise ValueError()
+            if not value.is_finite() or value<=0 or value>MONEY_MAX/100 or value.as_tuple().exponent < -2: raise ValueError()
             payment=Settlement.model_validate({'sale_id':sales[row['external_id']]['id'],
                 'reference':row['reference'],'received_on':row['received_on'],'amount':int(value*100)}).model_dump(mode='json')
             if payment['reference'] in existing or payment['reference'] in seen: raise ValueError()
