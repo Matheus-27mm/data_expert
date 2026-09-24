@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ArrowDown, ArrowDownToLine, ArrowRight, ArrowUpRight, Bell, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, CircleHelp, CreditCard, FileText, LayoutDashboard, LoaderCircle, Package, Search, Settings2, ShieldCheck, Sparkles, TrendingUp, TriangleAlert, Wallet, X } from 'lucide-react';
 import './styles.css';
-import {Workspace, DynamicWaterfall} from './Workspace';
+import {Workspace} from './Workspace';
+import {DynamicWaterfall} from './FinancialWaterfall';
 
 const money = (n: number) => new Intl.NumberFormat('pt-BR', {style:'currency',currency:'BRL', maximumFractionDigits:2}).format(n/100);
 const percent = (n:number) => n.toLocaleString('pt-BR',{maximumFractionDigits:1})+'%';

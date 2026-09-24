@@ -1186,3 +1186,11 @@ A migração `006_catalog_details.sql` adiciona os novos campos com valores vazi
 - **Estoque:** saldos por produto e filtro de disponibilidade. Movimentar estoque abre o cadastro de entrada/saída. O histórico tem filtros por data e direção; os movimentos continuam imutáveis. Vendas não movimentam estoque automaticamente.
 
 Os indicadores dessas telas refletem os filtros ativos. Cadastros abrem em janelas adaptadas a celular e tablet, com tabelas roláveis e ações de salvar/cancelar.
+
+### Painel de controle unificado
+
+Análises e Visão geral foram reunidas no **Painel de controle**. Os endereços antigos `#/workspace/analysis` e `#/workspace/dashboard` abrem a mesma tela, sem abas duplicadas.
+
+O painel reúne receita, resultado das vendas, despesas e resultado operacional, evolução diária, alertas, composição financeira em cascata, detalhamento das deduções, produtos e margens, e recomendações que podem virar planos de ação. O filtro diário/semanal/mensal é compartilhado entre os resultados financeiros e a exportação PDF. Contas vencidas e estoque refletem a posição atual, indicada no radar. O relatório exportado é salvo no histórico.
+
+A tabela de produtos ordena os grupos pelo volume vendido, permite busca e filtro de prejuízo. O comparativo distingue receita menos CMV, resultado após taxas e resultado operacional; este último não representa saldo bancário.

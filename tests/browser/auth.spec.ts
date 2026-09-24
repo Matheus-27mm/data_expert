@@ -15,7 +15,7 @@ test('login, settings and logout work across desktop and mobile',async({page})=>
   if(path.endsWith('/sign-out'))signedIn=false;
   await r.fulfill({json:path.endsWith('/token')?{token:'test-token'}:signedIn?identity:null});
  });
- await page.route('**/api/workspace/**',r=>{expect(r.request().headers()['authorization']).toBe('Bearer test-token');return r.fulfill({json:r.request().url().endsWith('/companies')?[{id:'store-a',name:'Loja da Ana'}]:{company:'Loja da Ana',start:'2026-09-01',end:'2026-09-30',totals:{revenue:0,cmv:0,tax:0,card:0,commission:0,net:0,expenses:0,refunds:0,cost_recovered:0,operating:0},products:[]}})});
+ await page.route('**/api/workspace/**',r=>{expect(r.request().headers()['authorization']).toBe('Bearer test-token');return r.fulfill({json:r.request().url().endsWith('/payables')||r.request().url().endsWith('/inventory')?[]:r.request().url().endsWith('/companies')?[{id:'store-a',name:'Loja da Ana'}]:{company:'Loja da Ana',start:'2026-09-01',end:'2026-09-30',totals:{revenue:0,cmv:0,tax:0,card:0,commission:0,net:0,expenses:0,refunds:0,cost_recovered:0,operating:0},products:[]}})});
  await page.goto('/');
  await expect(page.getByRole('heading',{name:'Bom ter você de volta.'})).toBeVisible();
  const background=page.locator('.auth-video-backdrop video');
@@ -39,7 +39,7 @@ test('login, settings and logout work across desktop and mobile',async({page})=>
  await page.getByRole('button',{name:'Entrar na minha empresa'}).click();
  await expect(page.getByRole('alert')).toContainText('Este endereço ainda não está autorizado');
  await page.getByRole('button',{name:'Entrar na minha empresa'}).click();
- await expect(page.getByRole('heading',{name:'Visão geral',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Painel de controle',exact:true})).toBeVisible();
  await expect.poll(()=>jwtRequests).toBeGreaterThan(0);
  await page.getByRole('link',{name:'Configurações',exact:true}).click();
  await expect(page.getByLabel('E-mail da conta')).toHaveValue('ana@example.test');

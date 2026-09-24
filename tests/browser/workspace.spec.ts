@@ -28,7 +28,7 @@ test('workspace persists company, stock, bills, CSV and PDF; accessible on mobil
   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
  });
  await page.goto('/#/workspace/dashboard');
- await expect(page.getByRole('heading',{name:'Visão geral',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Painel de controle',exact:true})).toBeVisible();
  await expect(page.getByText('Carregando sua empresa…',{exact:true})).toHaveCount(0);
  if(!await page.getByLabel('Nome da empresa').isVisible()){await page.getByRole('link',{name:'Configurações',exact:true}).click();await page.getByText('Cadastrar outra empresa',{exact:true}).click();}
  await page.getByLabel('Nome da empresa').fill('Empresa de teste navegador');
@@ -127,8 +127,15 @@ test('workspace persists company, stock, bills, CSV and PDF; accessible on mobil
  expect((await download).suggestedFilename()).toMatch(/\.pdf$/);
  await page.reload();
  await expect(page.getByRole('button',{name:'Baixar PDF',exact:true})).toBeVisible();
- await page.getByRole('link',{name:'Análises',exact:true}).click();
+ await page.getByRole('link',{name:'Painel de controle',exact:true}).click();
  await expect(page.getByRole('heading',{name:'O que merece atenção'})).toBeVisible();
+ await expect(page.getByRole('navigation',{name:'Operações desta área'})).toHaveCount(0);
+ await expect(page.getByRole('heading',{name:'Produtos e margens',exact:true})).toBeVisible();
+ await page.getByRole('combobox',{name:'Período',exact:true}).selectOption('weekly');
+ const panelDownload=page.waitForEvent('download');
+ await page.getByRole('button',{name:'Exportar relatório',exact:true}).click();
+ expect((await panelDownload).suggestedFilename()).toMatch(/\.pdf$/);
+ await page.getByRole('combobox',{name:'Período',exact:true}).selectOption('monthly');
  await expect(page.getByRole('button',{name:'Criar empresa',exact:true})).toHaveCount(0);
  await expect(page.getByRole('combobox',{name:'Sua empresa',exact:true})).toHaveCount(0);
  for(const width of [360,768,1440,2560]){
