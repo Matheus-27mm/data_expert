@@ -1197,3 +1197,6 @@ A tabela de produtos ordena os grupos pelo volume vendido, permite busca e filtr
 ### Leitura simplificada do painel
 
 O resumo financeiro mostra a definição de cada indicador e o período em datas brasileiras. A seção **Da receita ao resultado** é expansível: custos, cascata e comparativo ficam disponíveis sem ocupar a visão inicial. A tabela de produtos permite ordenar por volume, receita ou menor resultado, filtrar prejuízos e navegar em páginas de oito itens. Após criar um plano, o botão indica **Plano criado** e fica desabilitado durante a sessão atual da tela; isso não substitui uma regra de deduplicação no banco.
+### Importação guiada
+
+A página Importações organiza o trabalho em três etapas: escolher arquivo e tipo de dado, relacionar as colunas e conferir a validação antes de confirmar. Origem do ERP e mapeamentos reutilizáveis ficam nas opções avançadas. A amostra do arquivo original é expansível; a etapa final mostra até 20 registros convertidos, com valores monetários em reais. É possível voltar para revisar as colunas ou trocar o arquivo. A confirmação mantém as validações de erros e duplicidades do backend e informa a quantidade importada.

@@ -109,10 +109,12 @@ test('workspace persists company, stock, bills, CSV and PDF; accessible on mobil
  await page.getByRole('button',{name:'Salvar alterações',exact:true}).click();
  await expect(page.getByRole('status').filter({hasText:'Registro salvo'})).toBeVisible();
  await page.getByRole('link',{name:'Importações',exact:true}).first().click();
+ await page.getByText('Origem e integrações (opcional)',{exact:true}).click();
  await page.getByLabel('Origem dos dados').selectOption({label:'ERP teste'});
  await page.getByLabel('O que deseja importar?').selectOption('sales');
  const csv='external_id,sold_on,product,category,quantity,revenue,cmv,tax,card,commission,installments\nVENDA-001,2026-09-18,Caneca,Casa,1,20.00,10.00,1.00,0.50,1.00,1\n';
  await page.getByLabel('Escolha a planilha').setInputFiles({name:'vendas.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+ await page.getByText('Salvar relação de colunas para reutilizar',{exact:true}).click();
  if(await page.getByLabel('Nome do mapeamento').isVisible()){
   await page.getByLabel('Nome do mapeamento').fill('Colunas vendas');
   await page.getByRole('button',{name:'Salvar mapeamento'}).click();
