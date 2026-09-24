@@ -139,7 +139,7 @@ Na sidebar, **Configurações** mostra o e-mail da conta, a empresa selecionada 
 | Tela | O que fazer | Efeito no sistema |
 | --- | --- | --- |
 | Visão geral | Escolher dia, semana ou mês e uma data de referência | Consultar indicadores e a cascata de deduções |
-| Produtos | Cadastrar SKU, categoria, custo e preço unitários | Manter o catálogo; não cria estoque ou vendas automaticamente |
+| Produtos | Cadastrar e editar SKU, categoria, custo, preço, status e observações; pesquisar e filtrar o catálogo | Manter o catálogo; não cria estoque ou vendas automaticamente |
 | Vendas | Informar quantidade e valores totais da operação | Compor receita, custos, margem e relatórios |
 | Despesas | Registrar gastos que não foram cadastrados como contas a pagar | Reduzir o resultado operacional pela data de competência |
 | Devoluções | Selecionar uma venda e registrar valor devolvido e CMV recuperado | Ajustar o resultado na data do evento |
@@ -195,7 +195,7 @@ O cadastro de empresa aparece no primeiro acesso sem empresa e em **Configuraç�
 | Radar operacional | Produtos/parcelamentos deficitários no período; contas vencidas e estoque sem saldo na posição atual |
 | Recomendações | Regras verificáveis sobre margem negativa, despesas, vencimentos e estoque; cada sugestão pode virar um plano |
 | Planos de ação | Título, objetivo, prioridade, prazo, andamento e histórico de respostas/atualizações do empresário |
-| Clientes | Nome, e-mail e telefone, com contatos por WhatsApp, telefone, e-mail, loja ou outro canal |
+| Clientes | Cadastro e edição de nome, e-mail, telefone, CPF/CNPJ, chave PIX, endereço, cidade e observações; perfil com histórico de contatos por WhatsApp, telefone, e-mail, loja ou outro canal |
 | Histórico de atendimentos | Contato realizado, resposta do cliente e data do próximo retorno, preservados por cliente |
 
 Os contatos são registrados manualmente. Selecionar WhatsApp ou e-mail identifica o canal; não envia mensagens nem conecta essas plataformas. Os históricos de atendimento e de acompanhamento são registros independentes dos lançamentos financeiros. Recomendações usam regras sobre os dados cadastrados, sem alegar análise por IA. O resultado operacional não equivale ao saldo bancário.
@@ -1169,3 +1169,11 @@ O escopo atual é controle básico da empresa. Por decisão da equipe, envio por
 ### Monitoramento básico
 
 `/api/health` verifica a API; `/api/ready` verifica a conexão e as cinco migrações esperadas. Respostas incluem `X-Request-ID`. Os logs da aplicação registram método, rota, status e duração, sem corpo, token ou query string. O workflow operacional consulta a prontidão diariamente quando a variável `PUBLIC_APP_URL` estiver configurada no GitHub, após a publicação. Logs e checks não substituem um serviço externo de alertas em tempo real.
+
+### Cadastros de produtos e clientes
+
+Produtos têm uma tela própria com indicadores, busca por nome/SKU, filtro de categoria e formulário de **Adicionar produto**. Custo e preço são informados em reais e armazenados em centavos; observações são opcionais. A edição não altera os valores históricos das vendas. Produtos podem ser inativados sem apagar seus registros.
+
+Em **Clientes**, use **Cadastrar cliente** para abrir o formulário. Nome é obrigatório; os demais campos são opcionais. CPF/CNPJ e chave PIX são informações cadastrais, sem consulta cadastral ou processamento de pagamentos. A ação **Ver perfil** reúne os detalhes e atendimentos; **Editar cadastro** atualiza os dados sem apagar o histórico. Busca disponível por nome, documento e contato.
+
+A migração `006_catalog_details.sql` adiciona os novos campos com valores vazios para cadastros anteriores e habilita edição de clientes com isolamento por empresa. Esses campos integram automaticamente os backups individuais. Formulários se adaptam a telas pequenas; tabelas permitem rolagem horizontal.

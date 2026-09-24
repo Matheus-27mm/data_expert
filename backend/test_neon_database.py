@@ -168,3 +168,19 @@ def test_import_audit_rollback_on_late_conflict(database):
     assert len(db.rows('products',cid))==1
     jobs=db.rows('import_jobs',cid)
     assert len(jobs)==1 and jobs[0]['status']=='rejected'
+
+def test_catalog_details_and_customer_update_isolation(database):
+    from backend.workspace import Customer, Product, update_record
+    owner={'id':str(uuid4()),'email':'catalog@example.test'}
+    db=Session('',owner)
+    other=Session('',{'id':str(uuid4()),'email':'other@example.test'})
+    cid=db.insert('companies',{'name':'Catalog','owner_id':owner['id']})['id']
+    data=Customer(name='Cliente teste',document='123.456.789-00',pix_key='pix@example.test',address='Rua Um, 10',city='Manaus',notes='Prefere contato por telefone').model_dump()
+    customer=db.insert('customers',{'company_id':cid,**data})
+    result=update_record(UUID(cid),'customers',UUID(customer['id']),{**data,'city':'Belém'},db)
+    assert result['city']=='Belém' and result['notes']==data['notes']
+    assert other.request('PATCH','customers',params={'id':'eq.'+customer['id']},payload={'notes':'intrusion'})==[]
+    assert other.rows('customers',cid)==[]
+    assert db.rows('customers',cid)[0]['notes']==data['notes']
+    product=db.insert('products',{'company_id':cid,**Product(name='Caneca',sku='C1',category='Casa',unit_cost=1000,unit_price=2000,notes='Embalagem individual').model_dump()})
+    assert db.rows('products',cid)[0]['notes']==product['notes']

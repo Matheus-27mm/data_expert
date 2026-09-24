@@ -33,6 +33,7 @@ class Product(Input):
     unit_cost: int = Field(ge=0,le=MONEY_MAX)
     unit_price: int = Field(gt=0,le=MONEY_MAX)
     active: bool = True
+    notes: str = Field(default="",max_length=4000)
 
 class Sale(Input):
     external_id: str = Field(min_length=1,max_length=120)
@@ -156,6 +157,11 @@ class Customer(Input):
     name: str = Field(min_length=2,max_length=160)
     email: str = Field(default='',max_length=254)
     phone: str = Field(default='',max_length=40)
+    document: str = Field(default='',max_length=30)
+    pix_key: str = Field(default='',max_length=254)
+    address: str = Field(default='',max_length=300)
+    city: str = Field(default='',max_length=120)
+    notes: str = Field(default='',max_length=4000)
 
 class CustomerContact(Input):
     customer_id: UUID
@@ -199,7 +205,7 @@ def create_record(company_id:UUID,table:str,body:dict,db:Session=Depends(session
 @router.patch('/{company_id}/records/{table}/{record_id}')
 def update_record(company_id:UUID,table:str,record_id:UUID,body:dict,db:Session=Depends(session)):
     from pydantic import ValidationError
-    if table not in ('products','payment_terms','report_schedules','action_plans'):
+    if table not in ('products','payment_terms','report_schedules','action_plans','customers'):
         raise HTTPException(405,'Lançamentos financeiros são imutáveis. Registre um ajuste.')
     db.company(str(company_id))
     try:

@@ -31,7 +31,7 @@ test('presentation review: every workspace page renders with data on desktop and
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),area+' '+width).toBeTruthy();
    const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa']).analyze();
    for(const v of axe.violations)failures.push(area+' '+width+': '+v.id+' '+v.nodes.map(n=>n.target.join(' ')).join(', '));
-   if(['analysis','products','imports','backups','plans','settings'].includes(area))await page.screenshot({path:`output/review/${area}-${width}.png`,fullPage:true});
+   if(['analysis','products','customers','imports','backups','plans','settings'].includes(area))await page.screenshot({path:`output/review/${area}-${width}.png`,fullPage:true});
   }
  }
  expect(runtime).toEqual([]);expect(failures).toEqual([]);

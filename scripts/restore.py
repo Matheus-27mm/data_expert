@@ -26,7 +26,7 @@ def restore(path):
         existing={r[0] for r in conn.execute("select tablename from pg_tables where schemaname='public'")}
         for table in sorted((TABLES-{'report_deliveries'}) & existing):
             conn.execute(psycopg.sql.SQL('grant select,insert on public.{} to lucra_app').format(psycopg.sql.Identifier(table)))
-        for table in {'companies','products','payment_terms','report_schedules','action_plans'} & existing:
+        for table in {'companies','products','payment_terms','report_schedules','action_plans','customers'} & existing:
             conn.execute(psycopg.sql.SQL('grant update on public.{} to lucra_app').format(psycopg.sql.Identifier(table)))
     print('Business data restored. Authentication accounts remain managed by Neon Auth.')
 
