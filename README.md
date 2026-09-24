@@ -1200,3 +1200,9 @@ O resumo financeiro mostra a definição de cada indicador e o período em datas
 ### Importação guiada
 
 A página Importações organiza o trabalho em três etapas: escolher arquivo e tipo de dado, relacionar as colunas e conferir a validação antes de confirmar. Origem do ERP e mapeamentos reutilizáveis ficam nas opções avançadas. A amostra do arquivo original é expansível; a etapa final mostra até 20 registros convertidos, com valores monetários em reais. É possível voltar para revisar as colunas ou trocar o arquivo. A confirmação mantém as validações de erros e duplicidades do backend e informa a quantidade importada.
+
+### Abas e fórmulas na importação Excel
+
+O leitor lista as abas antes de validar registros e sugere Produtos, Vendas ou Despesas quando encontra esses nomes. Abas de resumo não precisam ser importadas. Colunas de fórmulas não mapeadas não bloqueiam o lote. Nas colunas mapeadas, o leitor usa o resultado armazenado no XLSX, sem executar fórmulas; recalcule e salve no Excel/LibreOffice antes de enviar para evitar resultados desatualizados. Fórmulas sem resultado salvo indicam a célula e bloqueiam a confirmação quando mapeadas. Campos obrigatórios ausentes precisam ser preenchidos na origem.
+
+As prioridades acordadas estão em [Prioridades do produto](docs/PRIORIDADES_PRODUTO.md).

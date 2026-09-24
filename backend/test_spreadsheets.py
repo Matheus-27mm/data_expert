@@ -28,8 +28,14 @@ def test_xlsx_multiple_sheets_date_and_formula():
     rows,errors=parse_sheet(data)
     assert not errors and rows[0]['amount']==150050 and rows[0]['incurred_on']=='2026-09-22'
     sheet['E2']='=1+1';out=io.BytesIO();book.save(out);data.content=base64.b64encode(out.getvalue()).decode()
-    with pytest.raises(HTTPException) as e: read_sheet(data)
-    assert e.value.status_code==422
+    assert read_sheet(data)[1][0]['amount']=='Fórmula sem resultado: E2'
+    rows,errors=parse_sheet(data)
+    assert not rows and 'E2' in errors[0]['message']
+    assert read_sheet(data,discover=True)==([],[],['Produtos','Despesas'])
+    sheet['E2']=1500.50;sheet['F1']='Resumo';sheet['F2']='=1+1'
+    out=io.BytesIO();book.save(out);data.content=base64.b64encode(out.getvalue()).decode()
+    rows,errors=parse_sheet(data)
+    assert not errors and rows[0]['amount']==150050
 
 @pytest.mark.parametrize('text',[
  'sku,sku\nA,A',

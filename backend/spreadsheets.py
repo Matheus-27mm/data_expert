@@ -28,7 +28,7 @@ class Spreadsheet(Input):
     mapping: dict[str,str] = Field(default_factory=dict)
 
 
-def read_sheet(body):
+def read_sheet(body, discover=False):
     if body.kind not in MODELS:
         raise HTTPException(422,'Escolha produtos, vendas ou despesas.')
     try:
@@ -41,19 +41,24 @@ def read_sheet(body):
                 if sum(f.file_size for f in archive.infolist())>20000000 or len(archive.infolist())>200:
                     raise ValueError('Planilha muito grande quando descompactada.')
             book=load_workbook(io.BytesIO(raw),read_only=True,data_only=False,keep_links=False)
+            cached=None
             try:
                 sheets=book.sheetnames
+                if discover: return [],[],sheets
                 sheet=book[body.sheet or sheets[0]]
                 sheet.reset_dimensions()
+                cached=load_workbook(io.BytesIO(raw),read_only=True,data_only=True,keep_links=False)
+                cached_sheet=cached[sheet.title]
+                cached_sheet.reset_dimensions()
                 data=[]
-                for index,row in enumerate(sheet.iter_rows(max_col=41)):
+                for index,(row,values_row) in enumerate(zip(sheet.iter_rows(max_col=41),cached_sheet.iter_rows(max_col=41))):
                     if index>1000: raise ValueError("Limite de 1.000 linhas após o cabeçalho.")
-                    if any(c.data_type=='f' for c in row):
-                        raise ValueError('Exporte as fórmulas como valores antes de importar.')
-                    values=[c.value for c in row]
+                    values=[(v.value if v.value is not None and v.data_type!='e' else f'Fórmula sem resultado: {c.coordinate}') if c.data_type=='f' else c.value for c,v in zip(row,values_row)]
                     while values and values[-1] is None: values.pop()
                     if any(v is not None for v in values): data.append(values)
-            finally: book.close()
+            finally:
+                book.close()
+                if cached: cached.close()
         elif body.filename.lower().endswith('.csv'):
             text=raw.decode('utf-8-sig')
             try: dialect=csv.Sniffer().sniff(text[:4096],delimiters=',;\t')
@@ -88,7 +93,13 @@ def parse_sheet(body):
     for number,row in enumerate(rows,2):
         try:
             values={k:row.get(v) for k,v in mapping.items()}
+            unresolved=[v for v in values.values() if isinstance(v,str) and v.startswith('Fórmula sem resultado:')]
+            if unresolved:
+                errors.append({'line':number,'message':'; '.join(unresolved)+'. Recalcule e salve no Excel/LibreOffice ou substitua por valores. Você também pode deixar essa coluna sem mapear quando ela não for necessária.'})
+                continue
             for k,v in list(values.items()):
+                if model.model_fields[k].annotation is str and isinstance(v,(int,float)):
+                    values[k]=str(int(v)) if int(v)==v else str(v)
                 if k in MONEY:
                     text=str(v).strip().replace('R$','').replace(' ','')
                     if ',' in text: text=text.replace('.','').replace(',','.')
@@ -109,7 +120,7 @@ def parse_sheet(body):
 @router.post('/{company_id}/spreadsheets/read')
 def inspect(company_id:UUID,body:Spreadsheet,db:Session=Depends(session)):
     db.company(str(company_id))
-    headers,rows,sheets=read_sheet(body)
+    headers,rows,sheets=read_sheet(body,discover=body.filename.lower().endswith('.xlsx') and not body.sheet)
     return {'headers':headers,'sample':rows[:5],'sheets':sheets,'count':len(rows),
             'fields':[{'key':k,'required':v.is_required()} for k,v in MODELS[body.kind].model_fields.items()]}
 
