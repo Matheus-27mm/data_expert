@@ -1,0 +1,53 @@
+/* Navigation surface; viewport and drawer behavior remain in premium.css. */
+.workspace-layout .workspace-sidebar{
+ background:linear-gradient(165deg,#183e32 0%,#102a23 75%);
+ color:#e4eee7;border-right:1px solid #294b3e;
+ padding:24px 14px 14px;box-shadow:6px 0 24px #102a230c;
+}
+.workspace-layout .workspace-sidebar .workspace-logo{padding:3px 12px 25px}
+.workspace-layout .workspace-sidebar .workspace-logo img{width:132px}
+.workspace-layout .workspace-sidebar .company-badge{
+ background:#244739;border:1px solid #3b5b4d;border-radius:14px;
+ padding:12px;margin-bottom:24px;color:#f3f7f2;gap:10px;
+ transition:background .15s ease;
+}
+.workspace-layout .workspace-sidebar .company-badge:hover{background:#305542}
+.workspace-layout .workspace-sidebar .company-avatar{background:#365d46;color:#d9e8ba;border-radius:11px;width:36px;height:38px}
+.workspace-layout .workspace-sidebar .company-badge small{color:#b8cdc0;font-size:8px;letter-spacing:1.2px}
+.workspace-layout .workspace-sidebar .company-badge strong{font-size:13px;margin-top:4px}
+.workspace-layout .workspace-sidebar .workspace-nav{gap:22px;padding:0 2px 16px;scrollbar-color:#547261 transparent}
+.workspace-layout .workspace-sidebar .workspace-nav-label{color:#abc2b4;font-size:9px;font-weight:600;letter-spacing:1px;margin:0 12px 8px}
+.workspace-layout .workspace-sidebar .nav-group{gap:4px}
+.workspace-layout .workspace-sidebar .workspace-nav a{
+ position:relative;min-height:41px;padding:10px 12px;gap:12px;
+ border:1px solid transparent;border-radius:10px;color:#d4e2d9;
+ font-size:12px;font-weight:500;box-shadow:none;line-height:1.4;
+ transition:background .15s ease,color .15s ease;
+}
+.workspace-layout .workspace-sidebar .workspace-nav a svg{flex-shrink:0;opacity:.85;stroke-width:1.7}
+.workspace-layout .workspace-sidebar .workspace-nav a:hover{background:#284b3c;color:#fff}
+.workspace-layout .workspace-sidebar .workspace-nav a[aria-current=page]{
+ background:#dce9c9;color:#173d2d;border-color:#dce9c9;font-weight:700;
+ box-shadow:0 3px 10px #071e2026;
+}
+.workspace-layout .workspace-sidebar .workspace-nav a[aria-current=page] svg{opacity:1;stroke-width:2}
+.workspace-layout .workspace-sidebar .workspace-account{border-top:1px solid #3b5548;padding:16px 6px 12px;gap:10px}
+.workspace-layout .workspace-sidebar .workspace-account-avatar{background:#2d503f;color:#dce9c9;border:1px solid #456450;border-radius:11px;width:34px;height:36px}
+.workspace-layout .workspace-sidebar .workspace-account strong{color:#edf4ed;font-size:12px}
+.workspace-layout .workspace-sidebar .workspace-account small{color:#b6cbbb;font-size:10px;line-height:1.5;margin-top:3px}
+.workspace-layout .workspace-sidebar .workspace-signout{background:transparent;color:#d6e3d9;border:1px solid #496454;border-radius:10px;min-height:40px;padding:9px 12px;font-size:12px}
+.workspace-layout .workspace-sidebar .workspace-signout:hover{background:#294b3b;color:white}
+.workspace-layout .workspace-sidebar a:focus-visible,.workspace-layout .workspace-sidebar button:focus-visible{outline:2px solid #e5ca85;outline-offset:2px}
+@media(max-height:800px){
+ .workspace-layout .workspace-sidebar{padding-top:16px}
+ .workspace-layout .workspace-sidebar .workspace-logo{padding-bottom:18px}
+ .workspace-layout .workspace-sidebar .company-badge{margin-bottom:18px}
+ .workspace-layout .workspace-sidebar .workspace-nav{gap:14px}
+ .workspace-layout .workspace-sidebar .workspace-nav a{min-height:38px;padding-block:8px}
+}
+@media(max-width:1200px){
+ .workspace-layout .workspace-sidebar .workspace-nav a{min-height:44px}
+}
+@media(prefers-reduced-motion:reduce){
+ .workspace-layout .workspace-sidebar a{transition:none}
+}

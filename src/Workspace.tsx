@@ -33,6 +33,7 @@ import './workspace.css';
 import './login.css';
 import './business.css';
 import './premium.css';
+import './sidebar.css';
 import {Integrations,Backups} from './IntegrationPages';
 import {Analysis,ImportCenter} from './BusinessPages';
 
@@ -90,7 +91,7 @@ export function Workspace(){
  <a className="workspace-skip" href="#workspace-main" onClick={e=>{e.preventDefault();document.getElementById("workspace-main")?.focus()}}>Pular para o conteúdo</a>
  {menuOpen&&<button className="workspace-backdrop" aria-label="Fechar menu" onClick={()=>setMenuOpen(false)}/>}
  <aside className={'workspace-sidebar'+(menuOpen?' is-open':'')} aria-label="Menu principal">
- <a className="workspace-logo" href="#/workspace/dashboard" aria-label="Lucra — visão geral"><img className="lucra-logo" src="/brand/lucra-dark.svg" width="144" height="32" alt="Lucra"/></a>
+ <a className="workspace-logo" href="#/workspace/dashboard" aria-label="Lucra — visão geral"><img className="lucra-logo" src="/brand/lucra-light.svg" width="144" height="32" alt="Lucra"/></a>
  <a className="company-badge" href="#/workspace/settings"><span className="company-avatar"><Building2 size={20}/></span><span><small>EMPRESA ATIVA</small><strong>{companies.find(c=>c.id===company)?.name||'Sua empresa'}</strong></span><ChevronRight size={15}/></a>
  <nav className="workspace-nav" aria-label="Área da empresa">{groups.map(group=><div className="nav-group" key={group.label}><span className="workspace-nav-label">{group.label}</span>{group.items.map(([key,Icon])=>{const id=key as string;const Symbol=Icon as typeof Settings;const active=area===id||(id==='analysis'&&area==='dashboard')||(id==='payables'&&['expenses','bills','bill_payments'].includes(area))||(id==='sales'&&['adjustments','settlements','reconciliation'].includes(area))||(id==='inventory'&&area==='stock_movements')||(id==='imports'&&area==='bank_imports')||(id==='integrations'&&area==='backups')||(id==='reports'&&area==='report_schedules')||(id==='settings'&&area==='payment_terms');return <a key={id} href={'#/workspace/'+id} onClick={()=>setMenuOpen(false)} aria-current={active?'page':undefined}><Symbol size={18}/><span>{navigation[id]}</span></a>})}</div>)}</nav>
  <div className="workspace-account"><span className="workspace-account-avatar"><UserRound size={20}/></span><div><strong>Minha conta</strong><small>{session.user.email}</small></div></div>
