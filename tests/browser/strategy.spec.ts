@@ -34,6 +34,11 @@ test('simulator loads catalog without receivables; action plans persist progress
  await expect(page.getByRole('region',{name:'Concluído',exact:true}).getByText('Revisar margem',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Reabrir plano',exact:true}).click();
  await page.getByRole('button',{name:/Prioridade média Revisar margem/}).click();
+ for(const width of [1440,820,360]){
+  await page.setViewportSize({width,height:900});
+  await page.screenshot({path:`output/review/plan-dialog-${width}.png`});
+ }
+ await page.setViewportSize({width:1440,height:900});
  await page.getByRole('combobox',{name:'Andamento',exact:true}).selectOption('progress');
  await expect(page.getByRole('combobox',{name:'Andamento',exact:true})).toHaveValue('progress');
  await page.getByLabel('Registrar atualização').fill('Preços revisados com o empresário.');
