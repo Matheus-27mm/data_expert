@@ -8,7 +8,11 @@ test('flexible import detects title rows, accepts defaults and corrections, bloc
  await expect(page.getByRole('heading',{name:'Da planilha para a gestão.'})).toBeVisible();
  const buffer=Buffer.from('Catálogo;;;;\n;;;;\nCód;Produto;Custo Aquisição;Preço Venda\nFLEX-1;Caneca;erro;25,90');
  await page.getByLabel('Escolha a planilha').setInputFiles({name:'flex.csv',mimeType:'text/csv',buffer});
+ await expect(page.getByText('Ajustar leitura do arquivo (avançado)',{exact:true})).toBeVisible();
  await expect(page.getByLabel('Linha do cabeçalho')).toHaveValue('3');
+ for(const width of [1440,820,360]){await page.setViewportSize({width,height:1000});expect(await page.locator('.import-column').evaluateAll(cards=>cards.every(card=>{const title=card.querySelector('.import-field-heading')!.getBoundingClientRect();const field=card.querySelector('select')!.getBoundingClientRect();return field.top-title.bottom>=12}))).toBeTruthy();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy()}
+ await page.setViewportSize({width:1440,height:1100});
+ await page.screenshot({path:'output/review/import-simple-mapping.png',fullPage:true});
  await page.getByLabel('Valor fixo: Categoria',{exact:true}).fill('Casa');
  await page.getByRole('button',{name:'Validar e visualizar'}).click();
  await expect(page.getByRole('alert')).toContainText('Linha 4');
