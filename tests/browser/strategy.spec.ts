@@ -1,0 +1,41 @@
+import {test,expect} from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+test('simulator loads catalog without receivables; action plans persist progress and notes',async({page})=>{
+ const headers={Authorization:'Bearer browser-test-token'};
+ await page.route('https://auth.example.test/**',r=>r.fulfill({json:r.request().url().endsWith('/token')?{token:'browser-test-token'}:{user:{id:'strategy-user',email:'strategy@example.test'},session:{id:'strategy-session',expiresAt:new Date(Date.now()+3600000).toISOString()}}}));
+ const company=await(await page.request.post('/api/workspace/companies',{headers,data:{name:'Estratégia teste'}})).json();
+ const base='/api/workspace/'+company.id;
+ const product=await(await page.request.post(base+'/records/products',{headers,data:{name:'Produto disponível',sku:'STRATEGY',category:'Teste',unit_cost:4000,unit_price:10000}})).json();
+ await page.addInitScript(cid=>localStorage.setItem('lucra-company:strategy-user',cid),company.id);
+ let receivables=0;await page.route('**/receivables',r=>{receivables++;return r.abort()});
+ let fail=true;await page.route('**/records/products',r=>fail?r.fulfill({status:503,json:{detail:'Falha temporária de teste'}}):r.continue());
+ await page.goto('/#/workspace/simulator');
+ await expect(page.getByRole('alert')).toContainText('Falha temporária');
+ fail=false;await page.getByRole('button',{name:'Tentar novamente'}).click();
+ await page.getByLabel('Produto 1',{exact:true}).selectOption(product.id);
+ await expect(page.getByText('R$ 60,00',{exact:true})).toBeVisible();
+ expect(receivables).toBe(0);
+ await expect(page.getByLabel('Data da venda',{exact:true})).toHaveCount(0);
+ await page.screenshot({path:'output/review/simulator-refined.png',fullPage:true});
+ await page.getByRole('link',{name:'Planos de ação',exact:true}).click();
+ await page.getByRole('button',{name:'Novo plano',exact:true}).click();
+ await page.getByLabel('Título do plano').fill('Revisar margem');
+ await page.getByLabel('Objetivo e próximos passos').fill('Comparar custos e preços.');
+ await page.getByLabel('Prazo do plano').fill('2026-01-01');
+ await page.getByRole('button',{name:'Salvar plano',exact:true}).click();
+ await page.getByRole('button',{name:/Prioridade média Revisar margem/}).click();
+ await page.getByRole('combobox',{name:'Andamento',exact:true}).selectOption('progress');
+ await expect(page.getByRole('combobox',{name:'Andamento',exact:true})).toHaveValue('progress');
+ await page.getByLabel('Registrar atualização').fill('Preços revisados com o empresário.');
+ await page.getByRole('button',{name:'Adicionar ao histórico'}).click();
+ await expect(page.locator('.timeline')).toContainText('Preços revisados');
+ await page.getByRole('button',{name:'Fechar acompanhamento'}).click();
+ await page.reload();
+ await expect(page.getByRole('region',{name:'Em andamento'}).getByText('Revisar margem',{exact:true})).toBeVisible();
+ for(const width of [1440,820,360]){
+  await page.setViewportSize({width,height:900});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+  expect((await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa']).analyze()).violations).toEqual([]);
+  await page.screenshot({path:`output/review/plans-refined-${width}.png`,fullPage:true});
+ }
+});
