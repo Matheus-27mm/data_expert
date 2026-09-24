@@ -12,7 +12,7 @@ A proposta atual é oferecer **controle básico da empresa com dados informados 
 
 [![Validação do projeto](https://github.com/Matheus-27mm/data_expert/actions/workflows/ci.yml/badge.svg)](https://github.com/Matheus-27mm/data_expert/actions/workflows/ci.yml)
 
-**[Acessar o sistema](https://dataexpert-eight.vercel.app/#/workspace/dashboard)** · **[Ver demonstração](https://dataexpert-eight.vercel.app/#/demo/overview)** · **[Repositório](https://github.com/Matheus-27mm/data_expert)** · **[Documentação da API](https://dataexpert-eight.vercel.app/api/docs)**
+**[Acessar o sistema](https://dataexpert-eight.vercel.app/#/workspace/dashboard)** · **[Ver demonstração](https://dataexpert-eight.vercel.app/#/demo/overview)** · **[Repositório](https://github.com/Matheus-27mm/data_expert)** · **[Revisão de segurança](docs/SEGURANCA.md)**
 
 > **Atualização de 22/09/2026:** layout fluido, central de integrações, mapeamentos reutilizáveis, histórico de importações e backups individuais por empresa. O login real foi validado com uma conta temporária; os testes automatizados de navegador simulam apenas a identidade e usam PostgreSQL real para os dados de negócio.
 
@@ -415,7 +415,7 @@ Use Docker Compose compatível com `env_file.required` (2.24 ou superior).
 
 - Dashboard: [http://127.0.0.1:8080](http://127.0.0.1:8080).
 - Saúde: [http://127.0.0.1:8080/api/health](http://127.0.0.1:8080/api/health).
-- Swagger: [http://127.0.0.1:8080/api/docs](http://127.0.0.1:8080/api/docs).
+- Swagger: `/api/docs`, somente quando `ENABLE_API_DOCS=1` no servidor local.
 
 ### Operação
 
@@ -498,7 +498,7 @@ Em outro terminal, também na raiz:
 npm run dev
 ```
 
-Abra [http://127.0.0.1:5173](http://127.0.0.1:5173). A documentação da API fica em [http://127.0.0.1:8000/api/docs](http://127.0.0.1:8000/api/docs). Use `Ctrl+C` em cada terminal para encerrar os processos.
+Abra [http://127.0.0.1:5173](http://127.0.0.1:5173). Para consultar `/api/docs` localmente, defina `ENABLE_API_DOCS=1` e reinicie a API. A documentação está desativada por padrão. Use `Ctrl+C` em cada terminal para encerrar os processos.
 
 ### Scripts frontend
 
@@ -657,9 +657,9 @@ O waterfall usa os totais do período selecionado: receita, CMV, impostos, cart�
 
 ## 10. Referência da API
 
-- Swagger UI: `/api/docs`.
+- Swagger UI: `/api/docs` (exige `ENABLE_API_DOCS=1`; não habilitar em produção).
 - ReDoc: `/api/redoc`.
-- OpenAPI: `/api/openapi.json`.
+- OpenAPI: `/api/openapi.json` (mesma configuração).
 
 As rotas desta seção são públicas. Dashboard e PDF usam dados fictícios; o simulador usa os parâmetros enviados. Saúde, prontidão e configuração informam o estado da instalação. As rotas autenticadas de cadastro, importação e persistência estão documentadas na seção 12.
 
@@ -976,7 +976,7 @@ O segundo comando publica um preview; o terceiro publica em produção. Confira 
 - `/api/config`: `configured: true`, sem credenciais privadas na resposta.
 - `/api/workspace/companies` sem token: HTTP `401`.
 - `/api/dashboard?period=monthly&anchor=2026-08-31`: `net: 1820000`.
-- `/api/docs`: documentação acessível.
+- `/api/docs`: deve retornar 404 em produção.
 - `/api/reports/pdf?period=monthly&anchor=2026-08-31`: PDF válido.
 - Simulador: testar uma venda, pois utiliza `POST`.
 
@@ -1105,7 +1105,7 @@ O repositório não possui arquivo de licença. A licença de distribuição ain
 | `ModuleNotFoundError` | Dependências em outro Python | Instale e execute pelo mesmo executável de `.venv` |
 | Falha com `STATIC_DIR` | Diretório inexistente | Gere o build e use caminho válido; não defina a variável com Vite |
 | Site abre, mas API publicada falha | Função ou rewrite | Confira `vercel.json` e logs da Vercel |
-| `/docs` retorna `404` | Documentação sob prefixo API | Use `/api/docs` |
+| `/api/docs` retorna `404` | Documentação desativada por padrão | Apenas localmente, defina `ENABLE_API_DOCS=1` |
 | PDF não baixa | Erro ou indisponibilidade da API | Teste a rota diretamente e consulte logs |
 | Área da empresa pede configuração | Variáveis ausentes | Preencha `.env`, aplique migrações e reinicie a API |
 | Login não conclui | Origem não permitida, conta pendente ou configuração JWT divergente | Confira Neon Auth, domínio publicado e variáveis opcionais de emissor/destinatário |

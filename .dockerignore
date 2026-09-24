@@ -11,6 +11,10 @@ output
 tmp
 .env
 .env.*
+*.pem
+*.key
+*.p12
+*.pfx
 **/test_*.py
 *.tsbuildinfo
 tests

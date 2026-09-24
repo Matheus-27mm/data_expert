@@ -13,10 +13,13 @@ from .workspace import router as workspace_router
 from . import integrations, company_backup, trading
 from . import spreadsheets  # register spreadsheet routes before mounting
 from .observability import request_log
+from .security import SecurityMiddleware
 
-app = FastAPI(title='Lucra API', version='1.0.0', docs_url='/api/docs', redoc_url='/api/redoc', openapi_url='/api/openapi.json')
+api_docs = os.getenv('ENABLE_API_DOCS') == '1'
+app = FastAPI(title='Lucra API', version='1.0.0', docs_url='/api/docs' if api_docs else None, redoc_url='/api/redoc' if api_docs else None, openapi_url='/api/openapi.json' if api_docs else None)
 app.middleware('http')(request_log)
 app.add_middleware(CORSMiddleware, allow_origins=['http://localhost:5173','http://127.0.0.1:5173'], allow_methods=['GET','POST','PATCH'], allow_headers=['Content-Type','Authorization'])
+app.add_middleware(SecurityMiddleware)
 sales = demo_sales()
 app.include_router(workspace_router)
 

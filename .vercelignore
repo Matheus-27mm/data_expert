@@ -9,6 +9,10 @@ output
 tmp
 .env
 .env.*
+*.pem
+*.key
+*.p12
+*.pfx
 Dockerfile
 compose.yaml
 tests
