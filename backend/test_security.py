@@ -13,12 +13,13 @@ def test_every_private_route_requires_auth(monkeypatch):
     monkeypatch.setenv('NEON_AUTH_URL','https://auth.example.test/auth')
     client = TestClient(app)
     checked = 0
-    for route in app.routes:
-        if not getattr(route,'path','').startswith('/api/workspace'): continue
-        path = re.sub(r'\{[^}]+\}',str(uuid4()),route.path)
-        for method in route.methods:
+    for template, operations in app.openapi()['paths'].items():
+        if not template.startswith('/api/workspace'): continue
+        path = re.sub(r'\{[^}]+\}',str(uuid4()),template)
+        for method in operations:
+            if method not in {'get','post','patch','put','delete'}: continue
             response = client.request(method,path,json={})
-            assert response.status_code == 401, (method,route.path,response.status_code)
+            assert response.status_code == 401, (method,template,response.status_code)
             assert response.headers['cache-control'] == 'no-store'
             checked += 1
     assert checked >= 25
