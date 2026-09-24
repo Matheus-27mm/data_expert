@@ -28,3 +28,59 @@
 /* Presentation review: readable empty states and keyboard-scrollable charts. */
 .workspace-layout .table-empty p,.workspace-layout .empty-state p{color:#496354}
 .workspace-layout .empty-state h3,.workspace-layout .empty-state a{color:#173f31}
+/* Tablet canvas: navigation stays available; only the content pane scrolls. */
+@media(max-width:1200px){
+ .workspace-layout{height:100dvh;min-height:0;overflow:hidden}
+ .workspace-layout .workspace-body{height:100%;width:100%;margin-left:0;display:flex;flex-direction:column;min-height:0}
+ .workspace-layout .workspace-header{flex-shrink:0;height:56px;min-height:56px;padding:6px 16px;gap:10px}
+ .workspace-layout .workspace-menu-toggle{display:grid;place-items:center;border:0;padding:8px}
+ .workspace-layout .workspace-sidebar{width:min(280px,85vw);visibility:hidden;transform:translateX(-100%)}
+ .workspace-layout .workspace-sidebar.is-open{visibility:visible;transform:translateX(0)}
+ .workspace-layout .workspace-backdrop{position:fixed;inset:0;z-index:25;background:#102c24a6;border:0;border-radius:0}
+ .workspace-layout main{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:16px;scroll-padding:16px}
+ .workspace-layout .workspace-body>footer{display:none}
+ .workspace-layout .page-heading{margin-bottom:12px;gap:10px}
+ .workspace-layout .page-heading h1{font-size:24px;margin:2px 0}
+ .workspace-layout .section-tabs{margin-bottom:14px;padding-bottom:8px}
+ .workspace-layout .workspace-content,.workspace-layout .workspace-settings article{padding:18px}
+ .workspace-layout .catalog-page{gap:12px}
+ .workspace-layout .catalog-toolbar h2{font-size:18px;margin:4px 0}
+ .workspace-layout .catalog-toolbar p{margin:4px 0;font-size:12px}
+ .workspace-layout .catalog-metrics{gap:10px;grid-template-columns:repeat(4,minmax(0,1fr))}
+ .workspace-layout .catalog-metrics article{padding:14px;gap:10px}
+ .workspace-layout .catalog-metrics strong{font-size:21px}
+ .workspace-layout .catalog-icon{width:34px;height:34px}
+ .workspace-layout .catalog-layout{grid-template-columns:minmax(0,1fr)}
+ .workspace-layout .catalog-card>header{padding:14px 18px}
+ .workspace-layout .catalog-filters{padding:12px 18px}
+ .workspace-layout .workspace-table{max-height:45dvh;overflow:auto;overscroll-behavior:contain}
+ .workspace-layout .workspace-table th{position:sticky;top:0;z-index:1}
+ .workspace-layout .catalog-dialog{max-height:calc(100dvh - 24px)}
+ .workspace-layout .catalog-dialog .catalog-form{gap:12px;padding:18px}
+ .workspace-layout .catalog-dialog .catalog-fields{gap:12px}
+ .workspace-layout .catalog-dialog .catalog-form-actions{position:sticky;bottom:-18px;background:white;margin:0 -18px -18px;padding:12px 18px;border-top:1px solid #e0e8e3;z-index:2}
+ .workspace-layout .analysis-metrics article{padding:14px}
+ .workspace-layout .analysis-metrics{margin-bottom:12px;gap:10px}
+ .workspace-layout .chart-legend{margin-top:12px}
+ .workspace-layout .trend-chart{min-height:140px;max-height:220px}
+ .workspace-layout .chart-empty{min-height:160px;padding:14px;margin:12px 0}
+ .workspace-layout .radar-card{padding:16px}
+ .workspace-layout .radar-card>a{padding:14px 0}
+ .workspace-layout .analysis-heading{margin-bottom:12px}
+ .workspace-layout .analysis-heading .workspace-inline{margin-top:10px}
+}
+@media(min-width:760px) and (max-width:1200px){
+ .workspace-layout .analysis-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .workspace-layout .analysis-grid{grid-template-columns:minmax(0,1.8fr) minmax(230px,1fr);gap:12px}
+ .workspace-layout .radar-card{display:block}
+ .workspace-layout .analysis-grid h2{font-size:17px}
+ .workspace-layout .analysis-metrics strong{font-size:23px}
+ .workspace-layout .page-heading{flex-direction:row;align-items:center}
+}
+@media(max-width:600px){
+ .workspace-layout main{padding:12px}
+ .workspace-layout .catalog-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .workspace-layout .catalog-toolbar{gap:8px}
+ .workspace-layout .catalog-dialog .catalog-fields{grid-template-columns:minmax(0,1fr)}
+ .workspace-layout .workspace-header>span{font-size:11px}
+}

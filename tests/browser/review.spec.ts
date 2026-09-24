@@ -26,13 +26,24 @@ test('presentation review: every workspace page renders with data on desktop and
   await expect(page.getByText('Carregando sua empresa…',{exact:true})).toHaveCount(0);
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
   await expect(page.locator('.workspace-error')).toHaveCount(0);
-  for(const width of [1440,360]){
+  for(const width of [1440,820,1180,360]){
    await page.setViewportSize({width,height:960});
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),area+' '+width).toBeTruthy();
+   if(width<=1200)expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),area+' viewport height '+width).toBeTruthy();
    const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa']).analyze();
    for(const v of axe.violations)failures.push(area+' '+width+': '+v.id+' '+v.nodes.map(n=>n.target.join(' ')).join(', '));
    if(['analysis','products','customers','imports','backups','plans','settings'].includes(area))await page.screenshot({path:`output/review/${area}-${width}.png`,fullPage:true});
   }
  }
+ await page.setViewportSize({width:1024,height:768});
+ await page.goto('/#/workspace/products');
+ await page.getByRole('button',{name:'Adicionar produto',exact:true}).click();
+ await expect(page.getByRole('dialog')).toBeVisible();
+ await expect(page.getByRole('button',{name:'Salvar produto',exact:true})).toBeInViewport();
+ await page.screenshot({path:'output/review/product-form-tablet.png'});
+ await page.keyboard.press('Escape');
+ await expect(page.getByRole('dialog')).not.toBeVisible();
+ await page.getByRole('button',{name:'Abrir navegação'}).click();
+ await expect(page.getByRole('link',{name:'Clientes',exact:true})).toBeVisible();
  expect(runtime).toEqual([]);expect(failures).toEqual([]);
 });
