@@ -12,6 +12,11 @@ test('integrated sale updates stock, receipts, returns and simulator',async({pag
  await page.goto('/#/workspace/sales');
  await page.getByRole('button',{name:'Adicionar venda',exact:true}).click();
  await page.getByLabel('Produto 1',{exact:true}).selectOption(p.id);
+ for(const width of [1440,820,360]){
+  await page.setViewportSize({width,height:960});
+  await page.screenshot({path:`output/review/new-sale-${width}.png`,fullPage:true});
+ }
+ await page.setViewportSize({width:1440,height:960});
  await expect(page.getByLabel('Preço 1',{exact:true})).toHaveValue('180');
  await page.getByLabel('Quantidade 1',{exact:true}).fill('2');
  await page.getByRole('button',{name:'Confirmar venda',exact:true}).click();
