@@ -1206,3 +1206,15 @@ A página Importações organiza o trabalho em três etapas: escolher arquivo e 
 O leitor lista as abas antes de validar registros e sugere Produtos, Vendas ou Despesas quando encontra esses nomes. Abas de resumo não precisam ser importadas. Colunas de fórmulas não mapeadas não bloqueiam o lote. Nas colunas mapeadas, o leitor usa o resultado armazenado no XLSX, sem executar fórmulas; recalcule e salve no Excel/LibreOffice antes de enviar para evitar resultados desatualizados. Fórmulas sem resultado salvo indicam a célula e bloqueiam a confirmação quando mapeadas. Campos obrigatórios ausentes precisam ser preenchidos na origem.
 
 As prioridades acordadas estão em [Prioridades do produto](docs/PRIORIDADES_PRODUTO.md).
+
+### Importação flexível e revisão assistida
+
+- CSV/TSV e XLSX: até 2 MB, 1.000 registros e 40 colunas por aba. Arquivos XLS antigos devem ser salvos como XLSX.
+- O leitor sugere cabeçalhos nas primeiras 50 linhas, aceita títulos e linhas vazias antes da tabela e permite definir a linha manualmente. Separador CSV e codificação UTF-8/Windows-1252 são configuráveis; use **Reler com estas opções** para reaplicar a leitura.
+- Sinônimos comuns sugerem o relacionamento das colunas. Confira as sugestões: uma data de vencimento, por exemplo, pode não ser a competência desejada. Taxas percentuais não são convertidas automaticamente em impostos em reais.
+- Valores fixos preenchem campos ausentes/vazios somente quando informados pelo usuário. A revisão permite corrigir células e excluir linhas de totais antes da confirmação, com nova validação obrigatória.
+- Números brasileiros e internacionais são aceitos. No modo automático, `1.234`/`1,234` são ambíguos e exigem escolha explícita do formato. Datas com barras seguem dia/mês/ano ou mês/dia/ano conforme o seletor; datas ISO continuam aceitas.
+- Identificadores automáticos são opcionais e derivados do conteúdo original da linha, tipo e origem; renomear o arquivo ou corrigir valores na revisão não muda esses identificadores. Linhas idênticas recebem um sufixo de ocorrência. Prefira IDs do ERP: alterações no conteúdo original podem gerar um novo ID, e transações legítimas indistinguíveis podem ser consideradas repetidas. A prévia continua bloqueando códigos já cadastrados.
+- Mapeamentos salvos por empresa/origem incluem valores fixos, opções de leitura e política de identificadores. A migração `007_import_options.sql` adiciona essas opções sem alterar os dados importados anteriormente.
+- Após confirmar uma aba, o arquivo permanece disponível para escolher outro tipo e importar a próxima aba. Cada lote tem confirmação própria; não há transação única envolvendo todas as abas nem associação automática entre vendas e estoque.
+- O leitor não executa fórmulas Excel: utiliza resultados salvos, permite correção manual de valores necessários e ignora colunas não mapeadas. Recalcule o arquivo na origem quando necessário.

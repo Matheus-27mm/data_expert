@@ -47,7 +47,7 @@ def readiness():
     try:
         with psycopg.connect(os.environ['DATABASE_URL'],connect_timeout=5) as conn:
             applied={r[0] for r in conn.execute('select name from public.lucra_migrations').fetchall()}
-        if not {'001_initial.sql','002_workspace.sql','003_inventory_payables.sql','004_business_history.sql','005_integrations_backups.sql','006_catalog_details.sql'}<=applied:
+        if not {'001_initial.sql','002_workspace.sql','003_inventory_payables.sql','004_business_history.sql','005_integrations_backups.sql','006_catalog_details.sql','007_import_options.sql'}<=applied:
             return JSONResponse({'status':'unavailable'},status_code=503)
         return {'status':'ok','mode':'neon'}
     except psycopg.Error:

@@ -10,11 +10,14 @@ class Source(Input):
     provider: str = Field(default='spreadsheet',min_length=2,max_length=80)
     mode: Literal['file','api'] = 'file'
 
+from .spreadsheets import ImportOptions
+
 class Mapping(Input):
     source_id: UUID
     kind: Literal['products','sales','expenses']
     name: str = Field(min_length=2,max_length=100)
-    mapping: dict[str,str] = Field(min_length=1,max_length=40)
+    mapping: dict[str,str] = Field(default_factory=dict,max_length=40)
+    options: ImportOptions = Field(default_factory=ImportOptions)
 
 @router.get('/{company_id}/integrations')
 def overview(company_id:UUID,db:Session=Depends(session)):
@@ -37,6 +40,8 @@ def save_mapping(company_id:UUID,body:Mapping,db:Session=Depends(session)):
         raise HTTPException(404,'Origem não encontrada nesta empresa.')
     model=MODELS[body.kind]
     required={k for k,v in model.model_fields.items() if v.is_required()}
-    if not required<=body.mapping.keys() or any(k not in model.model_fields or not v.strip() or len(v)>180 for k,v in body.mapping.items()):
+    provided=set(body.mapping)|set(body.options.defaults)
+    if body.options.generate_ids: provided.add('sku' if body.kind=='products' else 'external_id')
+    if not required<=provided or any(k not in model.model_fields for k in body.options.defaults) or any(k not in model.model_fields or not v.strip() or len(v)>180 for k,v in body.mapping.items()):
         raise HTTPException(422,'Relacione todos os campos obrigatórios a colunas válidas.')
     return db.insert('import_mappings',{'company_id':cid,**body.model_dump(mode='json')})

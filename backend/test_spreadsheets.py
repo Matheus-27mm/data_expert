@@ -62,3 +62,45 @@ def test_confirm_revalidates_and_blocks_existing_identifier():
 def test_import_rejects_extreme_exponent_before_integer_conversion():
     rows,errors=parse_sheet(payload('sku,name,category,unit_cost,unit_price\nA,C,C,1.00,1e1000000'))
     assert rows==[] and len(errors)==1
+
+
+def test_flexible_headers_defaults_physical_lines_and_corrections():
+    data=payload('Catálogo da loja;;;;\n;;;;\nCód;Produto;Custo Aquisição;Preço Venda\n101;Caneca;10,50;25,90\n102;Prato;erro;30,00')
+    data.defaults={'category':'Casa'}
+    rows,errors=parse_sheet(data)
+    assert data.header_row==3 and rows[0]['sku']=='101'
+    assert errors[0]['line']==5 and errors[0]['field']=='unit_cost'
+    data.corrections={5:{'unit_cost':'12,00'}}
+    rows,errors=parse_sheet(data)
+    assert not errors and rows[1]['unit_cost']==1200
+    data.excluded_rows=[5]
+    assert len(parse_sheet(data)[0])==1
+
+
+def test_number_formats_dates_and_stable_identifiers():
+    from backend.spreadsheets import money_value
+    assert money_value('1.234,56','auto')==123456
+    assert money_value('1,234.56','auto')==123456
+    with pytest.raises(ValueError,match='ambíguo'): money_value('1.234','auto')
+    assert money_value('1.234','br')==123400
+    data=payload('Data;Descrição;Categoria;Valor\n03/04/2026;Aluguel;Fixa;1,234.56','expenses')
+    data.generate_ids=True;data.date_format='mdy'
+    first,errors=parse_sheet(data)
+    assert not errors and first[0]['incurred_on']=='2026-03-04'
+    data.filename='renamed.csv'
+    assert parse_sheet(data)[0][0]['external_id']==first[0]['external_id']
+    data.corrections={2:{'description':'Aluguel corrigido'}}
+    assert parse_sheet(data)[0][0]['external_id']==first[0]['external_id']
+
+
+def test_aliases_do_not_turn_percentages_into_money():
+    from backend.spreadsheets import suggest_mapping
+    assert 'tax' not in suggest_mapping('sales',['Impostos (%)'])
+
+
+def test_windows_csv_and_manual_header():
+    data=payload('')
+    data.content=base64.b64encode('Relatório\nNome;Categoria;Custo;Preço;Código\nCafé;Bebidas;2;4;X'.encode('cp1252')).decode()
+    data.encoding='cp1252';data.delimiter=';';data.header_row=2
+    rows,errors=parse_sheet(data)
+    assert not errors and rows[0]['name']=='Café'

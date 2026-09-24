@@ -16,7 +16,7 @@ def snapshot(db,cid):
     with db.transaction(snapshot=True) as tx:
         company=tx.company(cid)
         records={table:tx.rows(table,cid) for table in BACKUP_TABLES}
-    return {'format':'lucra-company','version':1,'schema_migration':'006_catalog_details.sql',
+    return {'format':'lucra-company','version':1,'schema_migration':'007_import_options.sql',
             'created_at':datetime.now(timezone.utc).isoformat(),'company':company,'records':records}
 
 
