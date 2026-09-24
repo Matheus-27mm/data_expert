@@ -1,4 +1,5 @@
 from copy import deepcopy
+from contextlib import contextmanager
 from datetime import date
 from uuid import uuid4
 import pytest
@@ -20,6 +21,9 @@ class FakeDB:
         self.tables['companies']=[{'id':CID,'name':'Empresa & Filhos','owner_id':self.user['id']}]
         sale=parse_csv(CSV)[0][0]
         self.tables['sales']=[dict(sale,id=SALE,company_id=CID)]
+    @contextmanager
+    def transaction(self, *, snapshot=False):
+        yield self
     def company(self,cid):
         if cid!=CID:raise HTTPException(404,'Sem acesso')
         return self.tables['companies'][0]

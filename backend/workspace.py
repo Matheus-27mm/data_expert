@@ -114,21 +114,22 @@ from .neon_repository import Session
 from .neon_auth import session
 
 def company_summary(db, company_id, period, anchor):
-    company = db.company(company_id)
-    start,end = period_bounds(period,anchor)
-    dates = f'(sold_on.gte.{start},sold_on.lte.{end})'
-    sales = db.rows('sales',company_id,**{'and':dates})
-    result = summarize(pd.DataFrame(sales,columns=COLS),period,anchor)
-    expenses = db.rows('expenses',company_id,**{'and':f'(incurred_on.gte.{start},incurred_on.lte.{end})'})
-    adjustments = db.rows('adjustments',company_id,**{'and':f'(occurred_on.gte.{start},occurred_on.lte.{end})'})
-    t = result['totals']
-    t['expenses'] = sum(r['amount'] for r in expenses)
-    t['refunds'] = sum(r['amount'] for r in adjustments)
-    t['cost_recovered'] = sum(r['cost_recovered'] for r in adjustments)
-    t['operating'] = t['net'] - t['expenses'] - t['refunds'] + t['cost_recovered']
-    t['operating_margin'] = round(t['operating']/t['revenue']*100,2) if t['revenue'] else 0
-    result.update(company=company['name'],source='neon')
-    return result
+    with db.transaction(snapshot=True) as db:
+        company = db.company(company_id)
+        start,end = period_bounds(period,anchor)
+        dates = f'(sold_on.gte.{start},sold_on.lte.{end})'
+        sales = db.rows('sales',company_id,**{'and':dates})
+        result = summarize(pd.DataFrame(sales,columns=COLS),period,anchor)
+        expenses = db.rows('expenses',company_id,**{'and':f'(incurred_on.gte.{start},incurred_on.lte.{end})'})
+        adjustments = db.rows('adjustments',company_id,**{'and':f'(occurred_on.gte.{start},occurred_on.lte.{end})'})
+        t = result['totals']
+        t['expenses'] = sum(r['amount'] for r in expenses)
+        t['refunds'] = sum(r['amount'] for r in adjustments)
+        t['cost_recovered'] = sum(r['cost_recovered'] for r in adjustments)
+        t['operating'] = t['net'] - t['expenses'] - t['refunds'] + t['cost_recovered']
+        t['operating_margin'] = round(t['operating']/t['revenue']*100,2) if t['revenue'] else 0
+        result.update(company=company['name'],source='neon')
+        return result
 
 @router.get('/companies')
 def companies(db: Session = Depends(session)):
@@ -268,40 +269,43 @@ def confirm(company_id:UUID,body:CSVInput,db:Session=Depends(session)):
 
 @router.get('/{company_id}/reconciliation')
 def reconciliation(company_id:UUID,db:Session=Depends(session)):
-    db.company(str(company_id))
-    sales = db.rows('sales',str(company_id))
-    payments = db.rows('settlements',str(company_id))
-    adjustments = db.rows('adjustments',str(company_id))
-    result = []
-    for sale in sales:
-        received = sum(p['amount'] for p in payments if p['sale_id']==sale['id'])
-        refunds = sum(a['amount'] for a in adjustments if a['sale_id']==sale['id'])
-        expected = sale['revenue']-sale['card']-refunds
-        result.append({'id':sale['id'],'external_id':sale['external_id'],'product':sale['product'],
-                       'expected':expected,'received':received,'difference':received-expected,
-                       'status':'reconciled' if received==expected else 'pending' if received<expected else 'excess'})
-    return result
+    with db.transaction(snapshot=True) as db:
+        db.company(str(company_id))
+        sales = db.rows('sales',str(company_id))
+        payments = db.rows('settlements',str(company_id))
+        adjustments = db.rows('adjustments',str(company_id))
+        result = []
+        for sale in sales:
+            received = sum(p['amount'] for p in payments if p['sale_id']==sale['id'])
+            refunds = sum(a['amount'] for a in adjustments if a['sale_id']==sale['id'])
+            expected = sale['revenue']-sale['card']-refunds
+            result.append({'id':sale['id'],'external_id':sale['external_id'],'product':sale['product'],
+                           'expected':expected,'received':received,'difference':received-expected,
+                           'status':'reconciled' if received==expected else 'pending' if received<expected else 'excess'})
+        return result
 
 @router.get('/{company_id}/inventory')
 def inventory(company_id:UUID,db:Session=Depends(session)):
-    cid=str(company_id)
-    db.company(cid)
-    movements=db.rows('stock_movements',cid)
-    return [{**p,'balance':sum(m['quantity']*(1 if m['direction']=='in' else -1)
-              for m in movements if m['product_id']==p['id'])} for p in db.rows('products',cid)]
+    with db.transaction(snapshot=True) as db:
+        cid=str(company_id)
+        db.company(cid)
+        movements=db.rows('stock_movements',cid)
+        return [{**p,'balance':sum(m['quantity']*(1 if m['direction']=='in' else -1)
+                  for m in movements if m['product_id']==p['id'])} for p in db.rows('products',cid)]
 
 @router.get('/{company_id}/payables')
 def payables(company_id:UUID,db:Session=Depends(session)):
-    cid=str(company_id)
-    db.company(cid)
-    payments=db.rows('bill_payments',cid)
-    result=[]
-    for bill in db.rows('bills',cid):
-        paid=sum(p['amount'] for p in payments if p['bill_id']==bill['id'])
-        balance=bill['amount']-paid
-        result.append({**bill,'paid':paid,'balance':balance,'status':
-            'paid' if balance==0 else 'overdue' if bill['due_on']<str(date.today()) else 'pending'})
-    return sorted(result,key=lambda b:b['due_on'])
+    with db.transaction(snapshot=True) as db:
+        cid=str(company_id)
+        db.company(cid)
+        payments=db.rows('bill_payments',cid)
+        result=[]
+        for bill in db.rows('bills',cid):
+            paid=sum(p['amount'] for p in payments if p['bill_id']==bill['id'])
+            balance=bill['amount']-paid
+            result.append({**bill,'paid':paid,'balance':balance,'status':
+                'paid' if balance==0 else 'overdue' if bill['due_on']<str(date.today()) else 'pending'})
+        return sorted(result,key=lambda b:b['due_on'])
 
 def bank_preview(db,cid,content):
     """Map bank credits to sales by external ID; never guess ambiguous matches."""

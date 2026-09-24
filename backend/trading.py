@@ -117,20 +117,21 @@ def add_months(value,n):
 
 @router.get('/{company_id}/receivables')
 def receivables(company_id:UUID,db:Session=Depends(session)):
-    cid=str(company_id);db.company(cid)
-    payments=db.rows('settlements',cid);adjustments=db.rows('adjustments',cid);result=[]
-    for sale in db.rows('sales',cid):
-        refunds=sum(a['amount'] for a in adjustments if a['sale_id']==sale['id'])
-        expected=max(0,sale['revenue']-sale['card']-refunds)
-        received=sum(p['amount'] for p in payments if p['sale_id']==sale['id'])
-        remaining=received;parts=[]
-        for i in range(sale['installments']):
-            amount=expected//sale['installments']+(1 if i<expected%sale['installments'] else 0)
-            paid=min(amount,remaining);remaining-=paid
-            due=str(add_months(date.fromisoformat(sale['first_due_on']),i)) if sale.get('first_due_on') else None
-            parts.append({'number':i+1,'due_on':due,'amount':amount,'paid':paid,'balance':amount-paid})
-        result.append({**sale,'expected':expected,'received':received,'balance':max(0,expected-received),'excess':max(0,received-expected),'returned_quantity':sum(a.get('returned_quantity',0) for a in adjustments if a['sale_id']==sale['id']),'parts':parts})
-    return result
+    with db.transaction(snapshot=True) as db:
+        cid=str(company_id);db.company(cid)
+        payments=db.rows('settlements',cid);adjustments=db.rows('adjustments',cid);result=[]
+        for sale in db.rows('sales',cid):
+            refunds=sum(a['amount'] for a in adjustments if a['sale_id']==sale['id'])
+            expected=max(0,sale['revenue']-sale['card']-refunds)
+            received=sum(p['amount'] for p in payments if p['sale_id']==sale['id'])
+            remaining=received;parts=[]
+            for i in range(sale['installments']):
+                amount=expected//sale['installments']+(1 if i<expected%sale['installments'] else 0)
+                paid=min(amount,remaining);remaining-=paid
+                due=str(add_months(date.fromisoformat(sale['first_due_on']),i)) if sale.get('first_due_on') else None
+                parts.append({'number':i+1,'due_on':due,'amount':amount,'paid':paid,'balance':amount-paid})
+            result.append({**sale,'expected':expected,'received':received,'balance':max(0,expected-received),'excess':max(0,received-expected),'returned_quantity':sum(a.get('returned_quantity',0) for a in adjustments if a['sale_id']==sale['id']),'parts':parts})
+        return result
 
 class StockLimits(Input):
     min_stock: int = Field(ge=0,le=1000000)

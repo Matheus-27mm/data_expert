@@ -9,8 +9,11 @@ import {Login} from './Login';
 import {createInternalNeonAuth} from '@neondatabase/auth';
 const makeAuth = (url:string) => {
  const core=createInternalNeonAuth(url);
+ let pendingToken:Promise<string|null>|null=null;
  return {getSession:()=>core.adapter.getSession(),signIn:core.adapter.signIn,signUp:core.adapter.signUp,
-  signOut:()=>core.adapter.signOut(),getAccessToken:async()=>{
+  signOut:()=>core.adapter.signOut(),getAccessToken:()=>{
+   if(pendingToken)return pendingToken;
+   pendingToken=(async()=>{
    // A Better Auth session token may be opaque. Ask the JWT plugin explicitly
    // for the signed token that our API verifies against the provider's JWKS.
    // SDK 0.5.0-beta also routes adapter.token() through its get-session cache.
@@ -20,6 +23,8 @@ const makeAuth = (url:string) => {
    if(!response.ok)throw Error('Não foi possível validar sua sessão. Tente novamente.');
    const data=await response.json();
    return typeof data.token==='string'?data.token:null;
+   })().finally(()=>{pendingToken=null});
+   return pendingToken;
   }};
 };
 type AuthClient = ReturnType<typeof makeAuth>;
