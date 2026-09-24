@@ -1177,3 +1177,12 @@ Produtos têm uma tela própria com indicadores, busca por nome/SKU, filtro de c
 Em **Clientes**, use **Cadastrar cliente** para abrir o formulário. Nome é obrigatório; os demais campos são opcionais. CPF/CNPJ e chave PIX são informações cadastrais, sem consulta cadastral ou processamento de pagamentos. A ação **Ver perfil** reúne os detalhes e atendimentos; **Editar cadastro** atualiza os dados sem apagar o histórico. Busca disponível por nome, documento e contato.
 
 A migração `006_catalog_details.sql` adiciona os novos campos com valores vazios para cadastros anteriores e habilita edição de clientes com isolamento por empresa. Esses campos integram automaticamente os backups individuais. Formulários se adaptam a telas pequenas; tabelas permitem rolagem horizontal.
+
+### Organização das telas operacionais
+
+- **Taxas e parcelamento:** página própria acessível em Configurações → Configurar taxas e parcelamento; não fica no catálogo de Produtos. Permite cadastrar e editar condições de referência, sem aplicação automática nas vendas.
+- **Vendas:** indicadores de receita, custos e resultado dos lançamentos filtrados, busca, período e categoria. Adicionar venda abre um formulário com totais em reais. O resultado exibido não inclui despesas operacionais ou devoluções.
+- **Contas a pagar:** saldo aberto, pagamentos e vencidos; busca e filtros por vencimento e situação. Adicionar conta registra a despesa; Pagar conta registra a baixa sem duplicar a despesa.
+- **Estoque:** saldos por produto e filtro de disponibilidade. Movimentar estoque abre o cadastro de entrada/saída. O histórico tem filtros por data e direção; os movimentos continuam imutáveis. Vendas não movimentam estoque automaticamente.
+
+Os indicadores dessas telas refletem os filtros ativos. Cadastros abrem em janelas adaptadas a celular e tablet, com tabelas roláveis e ações de salvar/cancelar.

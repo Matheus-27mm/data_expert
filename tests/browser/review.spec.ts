@@ -32,7 +32,7 @@ test('presentation review: every workspace page renders with data on desktop and
    if(width<=1200)expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),area+' viewport height '+width).toBeTruthy();
    const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa']).analyze();
    for(const v of axe.violations)failures.push(area+' '+width+': '+v.id+' '+v.nodes.map(n=>n.target.join(' ')).join(', '));
-   if(['analysis','products','customers','imports','backups','plans','settings'].includes(area))await page.screenshot({path:`output/review/${area}-${width}.png`,fullPage:true});
+   if(['sales','payables','inventory','stock_movements','payment_terms','analysis','products','customers','imports','backups','plans','settings'].includes(area))await page.screenshot({path:`output/review/${area}-${width}.png`,fullPage:true});
   }
  }
  await page.setViewportSize({width:1024,height:768});
