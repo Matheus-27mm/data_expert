@@ -131,6 +131,14 @@ test('workspace persists company, stock, bills, CSV and PDF; accessible on mobil
  await expect(page.getByRole('heading',{name:'O que merece atenção'})).toBeVisible();
  await expect(page.getByRole('navigation',{name:'Operações desta área'})).toHaveCount(0);
  await expect(page.getByRole('heading',{name:'Produtos e margens',exact:true})).toBeVisible();
+ await expect(page.getByRole('region',{name:'Gráfico de formação do resultado'})).not.toBeVisible();
+ await page.locator('.panel-financial-details > summary').click();
+ await expect(page.getByRole('region',{name:'Gráfico de formação do resultado'})).toBeVisible();
+ await page.locator('.panel-financial-details > summary').click();
+ await page.getByRole('combobox',{name:'Ordenar por'}).selectOption('loss');
+ await page.getByLabel('Buscar produto',{exact:true}).fill('Caneca manual');
+ await expect(page.getByRole('region',{name:'Desempenho de produtos'}).getByRole('cell',{name:'Caneca manual',exact:true})).toBeVisible();
+ await page.getByLabel('Buscar produto',{exact:true}).fill('');
  await page.getByRole('combobox',{name:'Período',exact:true}).selectOption('weekly');
  const panelDownload=page.waitForEvent('download');
  await page.getByRole('button',{name:'Exportar relatório',exact:true}).click();

@@ -1194,3 +1194,6 @@ Análises e Visão geral foram reunidas no **Painel de controle**. Os endereços
 O painel reúne receita, resultado das vendas, despesas e resultado operacional, evolução diária, alertas, composição financeira em cascata, detalhamento das deduções, produtos e margens, e recomendações que podem virar planos de ação. O filtro diário/semanal/mensal é compartilhado entre os resultados financeiros e a exportação PDF. Contas vencidas e estoque refletem a posição atual, indicada no radar. O relatório exportado é salvo no histórico.
 
 A tabela de produtos ordena os grupos pelo volume vendido, permite busca e filtro de prejuízo. O comparativo distingue receita menos CMV, resultado após taxas e resultado operacional; este último não representa saldo bancário.
+### Leitura simplificada do painel
+
+O resumo financeiro mostra a definição de cada indicador e o período em datas brasileiras. A seção **Da receita ao resultado** é expansível: custos, cascata e comparativo ficam disponíveis sem ocupar a visão inicial. A tabela de produtos permite ordenar por volume, receita ou menor resultado, filtrar prejuízos e navegar em páginas de oito itens. Após criar um plano, o botão indica **Plano criado** e fica desabilitado durante a sessão atual da tela; isso não substitui uma regra de deduplicação no banco.
