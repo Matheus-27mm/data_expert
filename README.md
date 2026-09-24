@@ -124,7 +124,7 @@ Na demonstração, as telas compartilham o período selecionado. Na área da emp
 | Escrita no banco | Não | Sim, com autorização por proprietário |
 | Indicadores | Exemplo de receita, margem e deduções | Totais calculados a partir dos registros cadastrados |
 | PDF | Geração sob demanda, sem histórico | Snapshot salvo e disponível no histórico |
-| Simulador | Disponível nas telas demonstrativas | Não vinculado aos lançamentos ou condições cadastradas |
+| Simulador | Disponível nas telas demonstrativas | Disponível com produtos e condições da empresa; não grava lançamentos |
 
 A navegação utiliza fragmentos de URL (`#/...`), permitindo acessar diretamente as telas. A navegação inferior no celular pertence à demonstração; a área autenticada utiliza uma sidebar no computador e um menu lateral recolhível no celular, com configurações e saída da conta.
 
@@ -140,7 +140,7 @@ Na sidebar, **Configurações** mostra o e-mail da conta, a empresa selecionada 
 | --- | --- | --- |
 | Visão geral | Escolher dia, semana ou mês e uma data de referência | Consultar indicadores e a cascata de deduções |
 | Produtos | Cadastrar e editar SKU, categoria, custo, preço, status e observações; pesquisar e filtrar o catálogo | Manter o catálogo; não cria estoque ou vendas automaticamente |
-| Vendas | Informar quantidade e valores totais da operação | Compor receita, custos, margem e relatórios |
+| Vendas | Selecionar produtos, quantidades, preço e condições | Registrar valores históricos, baixar estoque quando escolhido e organizar recebimentos |
 | Despesas | Registrar gastos que não foram cadastrados como contas a pagar | Reduzir o resultado operacional pela data de competência |
 | Devoluções | Selecionar uma venda e registrar valor devolvido e CMV recuperado | Ajustar o resultado na data do evento |
 | Recebimentos | Vincular um crédito e sua referência à venda | Registrar o valor efetivamente recebido |
@@ -173,7 +173,7 @@ Considere uma venda de duas canecas por R$ 20,00 cada:
 
 O lucro estimado é R$ 20,00 e o resultado das vendas é R$ 15,00. Os valores da tabela já representam as duas unidades: o sistema não multiplica esses totais novamente pela quantidade.
 
-Registre uma saída de duas unidades no estoque, pois a venda não faz essa movimentação automaticamente. Se o crédito do cartão for R$ 39,00, registre-o na venda: a conciliação considera receita menos cartão, resultando em R$ 39,00 esperados. Impostos e comissão continuam como deduções financeiras separadas.
+Na nova venda integrada, mantenha a baixa automática para registrar a saída das duas unidades junto com a venda. Se este lançamento vier de importação histórica, confira o estoque inicial real em vez de duplicar saídas passadas. Se o crédito do cartão for R$ 39,00, registre-o na venda: a conciliação considera receita menos cartão, resultando em R$ 39,00 esperados. Impostos e comissão continuam como deduções financeiras separadas.
 
 Se houver uma conta de R$ 100,00 de aluguel na mesma competência, o cadastro da conta já gera essa despesa. O resultado operacional do exemplo passa a R$ -85,00. Pagar R$ 60,00 da conta deixa R$ 40,00 a pagar, sem descontar o aluguel uma segunda vez do resultado.
 
@@ -855,8 +855,8 @@ Cada empresa pertence a um usuário. As políticas limitam consultas e gravaçõ
 3. Cadastre produtos e vendas ou leia planilhas CSV/Excel pela central **Importações**.
 4. Registre despesas, recebimentos e devoluções para compor o resultado operacional.
 5. Consulte a conciliação e gere relatórios preservados no histórico.
-6. Em **Movimentar estoque**, registre o saldo inicial, entradas e saídas. O cadastro de uma venda não movimenta estoque automaticamente; registre a saída correspondente.
-7. Em **Cadastrar conta**, informe fornecedor, competência, vencimento e valor. A despesa é reconhecida automaticamente na competência; não cadastre a mesma despesa novamente.
+6. Em **Estoque → Movimentar estoque**, registre o saldo inicial e entradas reais. Novas vendas integradas já registram a saída quando a opção de baixa estiver ativa; não repita esse movimento.
+7. Em **Contas a pagar → Adicionar conta**, informe fornecedor, data da despesa, vencimento e valor. A despesa é reconhecida automaticamente na competência; não cadastre a mesma despesa novamente.
 8. Em **Pagar conta**, registre cada baixa. Pagamentos não duplicam a despesa, e valores acima do saldo são bloqueados. **Contas a pagar** exibe pendências e vencimentos.
 9. Em **Importar recebimentos**, envie um CSV com `reference,external_id,received_on,amount`. Use uma linha por crédito identificado: vendas desconhecidas e referências repetidas bloqueiam o lote. A prévia sempre precede a confirmação.
 
@@ -890,7 +890,7 @@ VENDA-001,2026-09-18,Caneca,Casa,2,40.00,20.00,2.00,1.00,2.00,1
 - O limite é 1.000 linhas de dados e 2 MB na interface.
 - A prévia informa erros e identificadores já existentes; ela não grava registros.
 - A confirmação revalida o conteúdo. Um conflito no banco reverte o lote inteiro.
-- Uma venda não cria automaticamente produto no catálogo nem saída de estoque.
+- Uma venda importada não cria automaticamente produto no catálogo nem saída de estoque. Use o cadastro integrado para novas operações com baixa automática.
 
 **Unidades monetárias:** CSV e formulários usam reais; a API de cadastros usa inteiros em centavos. R$ 40,00 aparece como `40.00` no CSV e como `4000` em um JSON enviado diretamente ao cadastro de vendas.
 
@@ -1180,10 +1180,10 @@ A migração `006_catalog_details.sql` adiciona os novos campos com valores vazi
 
 ### Organização das telas operacionais
 
-- **Taxas e parcelamento:** página própria acessível em Configurações → Configurar taxas e parcelamento; não fica no catálogo de Produtos. Permite cadastrar e editar condições de referência, sem aplicação automática nas vendas.
+- **Taxas e parcelamento:** página própria acessível em Configurações → Configurar taxas e parcelamento; não fica no catálogo de Produtos. Permite cadastrar e editar condições de referência, com aplicação ao selecionar a condição na nova venda ou no simulador.
 - **Vendas:** indicadores de receita, custos e resultado dos lançamentos filtrados, busca, período e categoria. Adicionar venda abre um formulário com totais em reais. O resultado exibido não inclui despesas operacionais ou devoluções.
 - **Contas a pagar:** saldo aberto, pagamentos e vencidos; busca e filtros por vencimento e situação. Adicionar conta registra a despesa; Pagar conta registra a baixa sem duplicar a despesa.
-- **Estoque:** saldos por produto e filtro de disponibilidade. Movimentar estoque abre o cadastro de entrada/saída. O histórico tem filtros por data e direção; os movimentos continuam imutáveis. Vendas não movimentam estoque automaticamente.
+- **Estoque:** saldos por produto e filtro de disponibilidade. Movimentar estoque abre o cadastro de entrada/saída. O histórico tem filtros por data e direção; os movimentos continuam imutáveis. Vendas integradas podem baixar estoque automaticamente; vendas importadas permanecem sem movimentação automática.
 
 Os indicadores dessas telas refletem os filtros ativos. Cadastros abrem em janelas adaptadas a celular e tablet, com tabelas roláveis e ações de salvar/cancelar.
 
@@ -1218,3 +1218,35 @@ As prioridades acordadas estão em [Prioridades do produto](docs/PRIORIDADES_PRO
 - Mapeamentos salvos por empresa/origem incluem valores fixos, opções de leitura e política de identificadores. A migração `007_import_options.sql` adiciona essas opções sem alterar os dados importados anteriormente.
 - Após confirmar uma aba, o arquivo permanece disponível para escolher outro tipo e importar a próxima aba. Cada lote tem confirmação própria; não há transação única envolvendo todas as abas nem associação automática entre vendas e estoque.
 - O leitor não executa fórmulas Excel: utiliza resultados salvos, permite correção manual de valores necessários e ignora colunas não mapeadas. Recalcule o arquivo na origem quando necessário.
+
+### Venda integrada, contas a pagar e estoque — atualização de 23/09/2026
+
+**Rotina recomendada:** cadastre os produtos → registre o estoque inicial real → abra Vendas → Adicionar venda → escolha produtos e quantidades → confira valores e condições → confirme.
+
+#### Vendas e simulador
+
+- Uma venda aceita até 50 itens. Cada item usa produto da empresa, quantidade e preço; o custo vem do catálogo. O backend recalcula totais, impostos, comissão e cartão, preservando esses valores no histórico.
+- Condições cadastradas podem ser escolhidas para aplicar taxas e parcelas. Sem condição, informe as taxas; o valor inicial é zero, não uma alíquota fiscal automática. Antecipação usa a estimativa linear já existente.
+- **Baixar estoque automaticamente** é ativado inicialmente. Sem saldo suficiente, nenhum item, recebimento ou movimento daquele envio é salvo. Desative apenas para operações que não devam movimentar o estoque.
+- **Já recebi o valor total** registra recebimento da receita menos cartão na data da venda. Não confunda com lucro após todos os custos. Desmarcado, o saldo permanece a receber.
+- O primeiro vencimento e o número de parcelas formam uma previsão mensal. Centavos restantes são distribuídos nas primeiras parcelas. Recebimentos são apropriados das parcelas mais antigas às mais novas. É uma previsão gerencial, sem consulta ao calendário da adquirente.
+- **Receber** na linha registra um valor parcial ou total. **Devolver / cancelar** informa quantidade e se houve recuperação da mercadoria; todas as unidades restantes cancelam o item. Para cancelar uma venda com vários itens, devolva cada item. O estoque é reposto somente quando a venda o movimentou e a reposição foi escolhida. O custo é recuperado quando a mercadoria é recuperada.
+- Taxas e impostos não são estornados automaticamente. A devolução reduz o esperado a receber; se já houve recebimento superior ao novo esperado, a tela destaca o valor a conferir/reembolsar. O Lucra não executa reembolsos bancários.
+- Vendas anteriores e importadas continuam válidas, sem vínculos artificiais com produtos nem baixa retroativa de estoque. Sem primeiro vencimento cadastrado, suas parcelas aparecem sem data. Ajustes antigos continuam na página Devoluções; vendas integradas usam a ação por quantidade.
+- O **Simulador de preço** está no menu da empresa e usa os mesmos produtos, condições e cálculo. Não salva venda, recebimento nem estoque.
+
+#### Contas a pagar
+
+Uma única tela reúne **Em aberto**, **Vencidas**, **Pagas**, **Todas** e **Histórico de pagamentos**. Adicionar conta solicita descrição, fornecedor, valor, vencimento, categoria e data da despesa. Referências são geradas automaticamente. **Registrar pagamento**, na própria linha, já identifica a conta e sugere o saldo restante; aceita baixa parcial. O cadastro cria a despesa uma vez, e o pagamento não a duplica. Os indicadores mostram o total da empresa; a busca filtra a lista.
+
+#### Estoque
+
+Indicadores de unidades, valor ao custo atual do catálogo, produtos com saldo e alertas. Visões **Estoque atual**, **Movimentações** e **Resumo mensal**; filtros por categoria, situação e produto. Limites mínimo/máximo são configuráveis por produto; zero de saldo gera alerta, e abaixo do mínimo aparece como reposição necessária. Sem limites configurados, o sistema não inventa um nível de reposição. Todas as quantidades são inteiras e em unidades; kg e unidades fracionárias ainda não são suportados.
+
+O resumo mensal reconstrói saldo inicial, entradas, saídas e saldo final pelo diário de movimentos. A valorização atual não é custo médio contábil. Excel/PDF exportam todo o estoque atual, independentemente dos filtros da tela. Novas vendas integradas e devoluções aparecem automaticamente no histórico de movimentos.
+
+#### Persistência e validação
+
+A migração `008_integrated_sales.sql` adiciona vínculo de produto, referência de lote, primeiro vencimento, controle de estoque na venda, quantidade devolvida e limites do produto. Os novos campos entram nos backups existentes. As chaves estrangeiras preservam vínculos dentro da empresa. O checkout é transacional e referências únicas impedem duplicação do mesmo envio. Há testes de rollback integral, isolamento entre proprietários, preservação de custos históricos, recebimentos, devoluções, exportações e jornada de navegador.
+
+Rotas novas: `POST /{empresa}/sales/quote`, `POST /{empresa}/sales/checkout`, `POST /{empresa}/sales/{venda}/return`, `GET /{empresa}/receivables`, `PATCH /{empresa}/inventory/{produto}/limits`, `GET /{empresa}/inventory/export?format=xlsx|pdf`, todas sob `/api/workspace` e autenticação.

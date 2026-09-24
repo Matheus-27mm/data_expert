@@ -193,8 +193,11 @@ def create_record(company_id:UUID,table:str,body:dict,db:Session=Depends(session
         raise HTTPException(422, str(error))
     values['company_id'] = str(company_id)
     if table in ('adjustments','settlements'):
-        if not db.rows('sales',str(company_id),id=f"eq.{values['sale_id']}"):
+        linked_sales=db.rows('sales',str(company_id),id=f"eq.{values['sale_id']}")
+        if not linked_sales:
             raise HTTPException(404,'Venda não encontrada nesta empresa.')
+        if table=='adjustments' and linked_sales[0].get('product_id'):
+            raise HTTPException(422,'Para esta venda, use Devolver na página de Vendas. Assim o estoque também será conferido.')
     if table == 'report_schedules':
         # Delivery can only go to the authenticated, confirmed account email.
         if not db.user.get('email_confirmed_at'):

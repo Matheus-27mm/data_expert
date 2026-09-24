@@ -10,7 +10,7 @@ const copy:Record<string,{title:string;action:string;save:string;hint:string}>={
  bill_payments:{title:'Pagamentos registrados',action:'Registrar pagamento',save:'Salvar pagamento',hint:'Registre baixas parciais ou totais. Pagamentos superiores ao saldo da conta são bloqueados.'},
  inventory:{title:'Posição do estoque',action:'Movimentar estoque',save:'Salvar movimentação',hint:'Saldo das entradas e saídas registradas. As vendas não movimentam automaticamente o estoque.'},
  stock_movements:{title:'Histórico de movimentações',action:'Nova movimentação',save:'Salvar movimentação',hint:'Entradas aumentam o saldo; saídas reduzem. Para corrigir um movimento, registre o inverso com outra referência.'},
- payment_terms:{title:'Suas condições de pagamento',action:'Adicionar condição',save:'Salvar condição',hint:'Organize impostos, comissões e taxas por parcelamento. Estes parâmetros são referências da empresa; não recalculam vendas já lançadas nem preenchem novas vendas automaticamente.'}
+ payment_terms:{title:'Suas condições de pagamento',action:'Adicionar condição',save:'Salvar condição',hint:'Organize impostos, comissões e taxas por parcelamento. Selecione uma condição na nova venda ou no simulador para aplicar estas taxas. Vendas já lançadas preservam os valores históricos.'}
 };
 const labels:Record<string,string>={in:'Entrada',out:'Saída',paid:'Pago',overdue:'Vencido',pending:'Pendente'};
 const norm=(v:unknown)=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();

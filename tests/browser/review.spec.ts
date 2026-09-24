@@ -1,6 +1,6 @@
 ﻿import {test,expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-const pages=['dashboard','analysis','products','sales','expenses','adjustments','settlements','reconciliation','payment_terms','imports','integrations','backups','reports','report_schedules','inventory','stock_movements','payables','bills','bill_payments','bank_imports','plans','customers','settings'];
+const pages=['simulator','dashboard','analysis','products','sales','expenses','adjustments','settlements','reconciliation','payment_terms','imports','integrations','backups','reports','report_schedules','inventory','stock_movements','payables','bills','bill_payments','bank_imports','plans','customers','settings'];
 test('presentation review: every workspace page renders with data on desktop and phone',async({page})=>{
  test.setTimeout(240000);
  const runtime:string[]=[];
