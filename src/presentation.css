@@ -1,0 +1,58 @@
+/* Final presentation layer: hierarchy and consistent operational controls. */
+.workspace-layout main{--surface-border:#e1e8e4;--muted-ink:#52675d}
+.workspace-layout .page-heading h1{font-size:clamp(25px,2.2vw,32px);letter-spacing:-1px;line-height:1.2}
+.workspace-layout .page-heading p{font-size:13px;color:var(--muted-ink);margin:9px 0 0}
+.workspace-layout .catalog-toolbar{padding:0 0 3px;gap:16px}
+.workspace-layout .catalog-toolbar p{margin:0;font-size:13px;line-height:1.6}
+.workspace-layout .control-panel .analysis-heading{background:transparent;border:0;border-radius:0;padding:0 0 20px;box-shadow:none;border-bottom:1px solid var(--surface-border)}
+.workspace-layout .control-panel .analysis-heading h2{font-size:18px;letter-spacing:-.35px;margin:0 0 6px}
+.workspace-layout .control-panel .analysis-heading p{font-size:13px;margin:0;color:var(--muted-ink)}
+.workspace-layout .panel-controls{align-items:end;gap:12px}
+.workspace-layout .panel-context{margin-block:18px;font-size:12px}
+.workspace-layout .analysis-metrics article,.workspace-layout .catalog-metrics article,.workspace-layout .daily-metrics article{border-radius:14px;box-shadow:0 3px 12px #17392a04;border:1px solid var(--surface-border)}
+.workspace-layout .analysis-metrics strong,.workspace-layout .catalog-metrics strong,.workspace-layout .daily-metrics strong{font-variant-numeric:tabular-nums;letter-spacing:-.8px;font-weight:650}
+.workspace-layout .analysis-metrics article{padding:22px}
+.workspace-layout .analysis-metrics strong{font-size:clamp(23px,2.1vw,32px);margin:10px 0}
+.workspace-layout .analysis-metrics article:last-child{background:linear-gradient(120deg,#173e30,#286348);color:#fff;border-color:#286348}
+.workspace-layout .analysis-metrics article:last-child span,.workspace-layout .analysis-metrics article:last-child small{color:#e1ece3}
+.workspace-layout .catalog-metrics article{padding:20px;gap:13px}
+.workspace-layout .catalog-icon{background:#f0f5ef;border:1px solid #e4ece2;border-radius:12px}
+.workspace-layout .catalog-card,.workspace-layout .workspace-content{border-color:var(--surface-border);box-shadow:0 4px 18px #17392a03}
+.workspace-layout .catalog-card>header{padding:20px 22px}
+.workspace-layout .catalog-card>header h2{font-size:16px;letter-spacing:-.2px}
+.workspace-layout .catalog-form-heading h2{font-size:19px}
+.workspace-layout .catalog-form-heading p{font-size:12px;line-height:1.6}
+.workspace-layout .catalog-form label,.workspace-layout .sale-editor label{font-size:12px;line-height:1.5;font-weight:500}
+.workspace-layout main input:not([type=checkbox]):not([type=radio]):not([type=file]),.workspace-layout main select{min-height:44px;border-color:#cfddd4;border-radius:9px;box-shadow:0 1px 2px #17392a03}
+.workspace-layout main input:focus-visible,.workspace-layout main select:focus-visible,.workspace-layout main textarea:focus-visible{outline:2px solid #477759;outline-offset:2px}
+.workspace-layout main button{border-radius:9px;transition:background .15s ease,box-shadow .15s ease}
+.workspace-layout main .primary-button,.workspace-layout .catalog-toolbar>button{box-shadow:0 2px 5px #163c3014}
+.workspace-layout main button:not(:disabled):hover{box-shadow:0 3px 8px #163c3012}
+.workspace-layout .workspace-table th{background:#f6f8f6;color:#52685c;font-size:10px;font-weight:650;letter-spacing:.45px;padding:14px 18px;border-bottom:1px solid #e3ebe5}
+.workspace-layout .workspace-table td{padding:17px 18px;border-bottom:1px solid #edf1ee;font-size:13px;font-variant-numeric:tabular-nums}
+.workspace-layout .workspace-table tbody tr:last-child td{border-bottom:0}
+.workspace-layout .workspace-table tbody tr:hover{background:#f8faf7}
+.workspace-layout .product-catalog .catalog-list :is(th,td):nth-child(4),.workspace-layout .product-catalog .catalog-list :is(th,td):nth-child(5),.workspace-layout .daily-page .workspace-table[aria-label="Vendas registradas"] :is(th,td):nth-child(2),.workspace-layout .daily-page .workspace-table[aria-label="Vendas registradas"] :is(th,td):nth-child(3),.workspace-layout .daily-page .workspace-table[aria-label="Vendas registradas"] :is(th,td):nth-child(4),.workspace-layout .daily-page .workspace-table[aria-label="Vendas registradas"] :is(th,td):nth-child(5){text-align:right}
+.workspace-layout .catalog-filters{background:#fcfdfb;border-bottom:1px solid #edf1ee;padding:18px 22px}
+.workspace-layout .catalog-status{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.workspace-layout .catalog-status:before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+.workspace-layout .catalog-status.is-active{background:#edf5ea;color:#31613c}
+.workspace-layout .catalog-status.is-inactive{background:#f0f2f1;color:#5a635e}
+.workspace-layout .sale-editor .sale-section-title{font-size:14px;letter-spacing:-.1px;margin:24px 0 0;padding-bottom:12px;border-bottom:1px solid #e2ebe4}
+.workspace-layout .sale-editor fieldset{background:#fcfdfb;border-color:#dce6df;border-radius:12px;padding:18px}
+.workspace-layout .sale-editor legend{font-size:14px;padding-inline:8px}
+.workspace-layout .sale-editor .sale-cost{background:#edf3eb;border-radius:9px;padding:10px 14px;align-self:end;min-height:62px}
+.workspace-layout .sale-editor .sale-cost strong{display:block;font-size:15px;margin-top:5px;font-variant-numeric:tabular-nums}
+.workspace-layout .sale-editor .daily-metrics{margin-top:18px}
+.workspace-layout .workspace-notice{border:1px solid #b8d4ba;border-left:3px solid #36754a;font-size:13px}
+.workspace-layout .daily-page>p[role=status],.workspace-layout .catalog-page>p[role=status],.workspace-layout .control-panel>p[role=status]{padding:18px 20px;background:#eef3ee;border-radius:12px;font-size:13px}
+@media(max-width:700px){
+ .workspace-layout .analysis-metrics article,.workspace-layout .catalog-metrics article{padding:15px}
+ .workspace-layout .analysis-metrics strong{font-size:23px}
+ .workspace-layout .catalog-card>header,.workspace-layout .catalog-filters{padding:16px}
+ .workspace-layout .catalog-toolbar p{font-size:12px}
+ .workspace-layout .sale-editor fieldset{padding:12px}
+ .workspace-layout .sale-editor .sale-cost{align-self:stretch}
+ .workspace-layout .panel-controls{gap:10px}
+}
+@media(prefers-reduced-motion:reduce){.workspace-layout main button{transition:none}}

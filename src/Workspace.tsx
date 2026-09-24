@@ -34,6 +34,7 @@ import './login.css';
 import './business.css';
 import './premium.css';
 import './sidebar.css';
+import './presentation.css';
 import {Integrations,Backups} from './IntegrationPages';
 import {Analysis,ImportCenter} from './BusinessPages';
 
