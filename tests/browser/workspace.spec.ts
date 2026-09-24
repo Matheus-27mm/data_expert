@@ -135,7 +135,12 @@ test('workspace persists company, stock, bills, CSV and PDF; accessible on mobil
  await page.setViewportSize({width:1440,height:960});
  await page.screenshot({path:'output/review/customer-form-1440.png'});
  await page.getByLabel('Nome do cliente').fill('Cliente exemplo');
- await page.getByLabel('CPF/CNPJ',{exact:true}).fill('123.456.789-00');
+ await page.getByLabel('Telefone',{exact:true}).fill('11987654321');
+ await expect(page.getByLabel('Telefone',{exact:true})).toHaveValue('(11) 98765-4321');
+ await page.getByLabel('CPF/CNPJ',{exact:true}).fill('12345678000190');
+ await expect(page.getByLabel('CPF/CNPJ',{exact:true})).toHaveValue('12.345.678/0001-90');
+ await page.getByLabel('CPF/CNPJ',{exact:true}).fill('12345678900');
+ await expect(page.getByLabel('CPF/CNPJ',{exact:true})).toHaveValue('123.456.789-00');
  await page.getByLabel('Chave PIX',{exact:true}).fill('cliente@example.test');
  await page.getByLabel('Endereço',{exact:true}).fill('Rua Um, 10');
  await page.getByLabel('Cidade',{exact:true}).fill('Manaus');
@@ -143,6 +148,8 @@ test('workspace persists company, stock, bills, CSV and PDF; accessible on mobil
  await page.getByRole('button',{name:'Salvar cliente'}).click();
  await expect(page.getByText('Cliente prefere telefone',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Editar cadastro',exact:true}).click();
+ await expect(page.getByLabel('Telefone',{exact:true})).toHaveValue('(11) 98765-4321');
+ await expect(page.getByLabel('CPF/CNPJ',{exact:true})).toHaveValue('123.456.789-00');
  await page.getByLabel('Cidade',{exact:true}).fill('Belém');
  await page.getByRole('button',{name:'Salvar alterações',exact:true}).click();
  await expect(page.getByText('Belém',{exact:true}).last()).toBeVisible();
