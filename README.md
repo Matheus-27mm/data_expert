@@ -915,8 +915,6 @@ Todas estas rotas exigem `Authorization: Bearer <JWT>`:
 | GET | `/{company_id}/dashboard` | Indicadores reais; parâmetros `period` e `anchor` |
 | GET / POST | `/{company_id}/records/{table}` | Consultar / cadastrar registros permitidos |
 | PATCH | `/{company_id}/records/{table}/{id}` | Editar produtos, condições ou agendamentos |
-| POST | `/{company_id}/imports/preview` | Validar CSV e detectar duplicidades |
-| POST | `/{company_id}/imports/confirm` | Gravar o lote em uma transação |
 | GET | `/{company_id}/reconciliation` | Comparar recebimentos e valores esperados |
 | GET | `/{company_id}/inventory` | Saldo de movimentos por produto |
 | GET | `/{company_id}/payables` | Contas, total pago, saldo e situação |

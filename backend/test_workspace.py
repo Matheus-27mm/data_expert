@@ -6,20 +6,19 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.workspace import session, parse_csv, company_summary
+from backend.workspace import session, company_summary
 from scripts.report_worker import due_anchor
 
 CID='11111111-1111-4111-8111-111111111111'
 OTHER='22222222-2222-4222-8222-222222222222'
 SALE='33333333-3333-4333-8333-333333333333'
-CSV='external_id,sold_on,product,category,quantity,revenue,cmv,tax,card,commission,installments\nv1,2026-09-18,Produto,Loja,1,200.00,140.00,12.00,23.50,8.00,12\n'
 
 class FakeDB:
     user={'id':'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','email':'owner@example.com','email_confirmed_at':'2026-01-01'}
     def __init__(self):
         self.tables={t:[] for t in ['products','expenses','adjustments','settlements','payment_terms','report_history','report_schedules']}
         self.tables['companies']=[{'id':CID,'name':'Empresa & Filhos','owner_id':self.user['id']}]
-        sale=parse_csv(CSV)[0][0]
+        sale={'external_id':'v1','sold_on':'2026-09-18','product':'Produto','category':'Loja','quantity':1,'revenue':20000,'cmv':14000,'tax':1200,'card':2350,'commission':800,'installments':12}
         self.tables['sales']=[dict(sale,id=SALE,company_id=CID)]
     @contextmanager
     def transaction(self, *, snapshot=False):
@@ -65,24 +64,7 @@ def test_other_company_not_accessible(workspace):
     client,db=workspace
     for endpoint in ['dashboard','records/sales','reports','reconciliation']:
         assert client.get(f'/api/workspace/{OTHER}/{endpoint}').status_code==404
-    assert client.post(f'/api/workspace/{OTHER}/imports/confirm',json={'content':CSV}).status_code==404
-
-def test_csv_exact_cents_and_validation():
-    rows,errors=parse_csv(CSV)
-    assert not errors and rows[0]['card']==2350
-    for bad in ['NaN','Infinity','1.001','-1','1e1000000']:
-        assert parse_csv(CSV.replace('200.00',bad))[1]
-    assert parse_csv(CSV+CSV.splitlines()[1]+'\n')[1]
-    with pytest.raises(HTTPException):parse_csv('bad,header\n1,2')
-
-def test_import_duplicate_and_atomic_commit(workspace):
-    client,db=workspace
-    preview=client.post(f'/api/workspace/{CID}/imports/preview',json={'content':CSV}).json()
-    assert preview['duplicates']==['v1'] and not preview['can_import']
-    assert client.post(f'/api/workspace/{CID}/imports/confirm',json={'content':CSV}).status_code==409
-    assert len(db.tables['sales'])==1
-    new=CSV.replace('v1,','v2,')
-    assert client.post(f'/api/workspace/{CID}/imports/confirm',json={'content':new}).json()=={'imported':1}
+    assert client.post(f'/api/workspace/{OTHER}/bank-imports/confirm',json={'content':'x'}).status_code==404
 
 def test_operating_result_refunds_expenses(workspace):
     client,db=workspace

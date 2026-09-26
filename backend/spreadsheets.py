@@ -182,10 +182,10 @@ def prepare_rows(body):
         prepared.append((row.line,values))
     return prepared
 
-def parse_sheet(body):
+def parse_sheet(body,prepared=None):
     model=MODELS[body.kind];parsed,errors,seen=[],[],set()
     identity='sku' if body.kind=='products' else 'external_id'
-    for number,original in prepare_rows(body):
+    for number,original in (prepare_rows(body) if prepared is None else prepared):
         values=dict(original);field=''
         try:
             for field,v in list(values.items()):
@@ -230,7 +230,9 @@ def import_sheet(company_id:UUID,operation:str,body:Spreadsheet,db:Session=Depen
            'filename':body.filename.replace('\\','/').split('/')[-1],
            'fingerprint':hashlib.sha256(body.content.encode()).hexdigest()}
     try:
-        parsed,errors=parse_sheet(body)
+        # Decode and map the workbook once; parsing and the review table share it.
+        prepared=prepare_rows(body)
+        parsed,errors=parse_sheet(body,prepared)
         identity='sku' if body.kind=='products' else 'external_id'
         existing={r.get(identity) for r in db.rows(body.kind,cid)}
         duplicates=[r[identity] for r in parsed if r[identity] in existing]
@@ -249,7 +251,7 @@ def import_sheet(company_id:UUID,operation:str,body:Spreadsheet,db:Session=Depen
             db.insert('import_jobs',{**audit,'status':'rejected','rejected':len(errors)+len(duplicates),
                                      'detail':'Validação: corrija campos inválidos ou identificadores repetidos.'})
         return {'rows':parsed,'errors':errors,'duplicates':duplicates,'can_import':valid,
-                'review':[{'line':line,'values':values} for line,values in prepare_rows(body)]}
+                'review':[{'line':line,'values':values} for line,values in prepared]}
     except HTTPException as error:
         if error.status_code in (409,413,422):
             db.insert('import_jobs',{**audit,'status':'rejected','rejected':1,
