@@ -6,11 +6,21 @@ import React, {useEffect, useState} from 'react';
 import {Settings, LogOut, Menu, X, ChevronRight, ShieldCheck, Building2, UserRound, ChartNoAxesCombined, Package, ShoppingBag, Wallet, Boxes, Upload, FileText, ListTodo, Users, Plug, Search} from 'lucide-react';
 import {Login} from './Login';
 import {createInternalNeonAuth} from '@neondatabase/auth';
+// The API validates JWTs statelessly against JWKS, so reusing a token until
+// shortly before `exp` changes no revocation semantics; it only removes one
+// round trip to Neon Auth per API call. Memory only: never persisted.
+const EXPIRY_MARGIN_MS=60_000;
+function expiresAt(token:string){
+ try{const exp=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp;return typeof exp==='number'?exp*1000:0}catch{return 0}
+}
 const makeAuth = (url:string) => {
  const core=createInternalNeonAuth(url);
  let pendingToken:Promise<string|null>|null=null;
- return {getSession:()=>core.adapter.getSession(),signIn:core.adapter.signIn,signUp:core.adapter.signUp,
-  signOut:()=>core.adapter.signOut(),getAccessToken:()=>{
+ let cached:{token:string;expires:number}|null=null;
+ const forget=()=>{cached=null};
+ return {getSession:()=>core.adapter.getSession(),signIn:core.adapter.signIn,signUp:core.adapter.signUp,forget,
+  signOut:()=>{forget();return core.adapter.signOut()},getAccessToken:()=>{
+   if(cached&&cached.expires-EXPIRY_MARGIN_MS>Date.now())return Promise.resolve(cached.token);
    if(pendingToken)return pendingToken;
    pendingToken=(async()=>{
    // A Better Auth session token may be opaque. Ask the JWT plugin explicitly
@@ -18,10 +28,12 @@ const makeAuth = (url:string) => {
    // SDK 0.5.0-beta also routes adapter.token() through its get-session cache.
    // Fetch the JWT endpoint directly so a cached session cannot replace it.
    const response=await fetch(url.replace(/\/$/,'')+'/token',{credentials:'include',cache:'no-store',signal:AbortSignal.timeout(15000)});
-   if(response.status===401)return null;
+   if(response.status===401){forget();return null}
    if(!response.ok)throw Error('Não foi possível validar sua sessão. Tente novamente.');
    const data=await response.json();
-   return typeof data.token==='string'?data.token:null;
+   const token=typeof data.token==='string'?data.token:null;
+   cached=token?{token,expires:expiresAt(token)}:null;
+   return token;
    })().finally(()=>{pendingToken=null});
    return pendingToken;
   }};
@@ -67,7 +79,7 @@ export function Workspace(){
    const token=await client!.getAccessToken();
    if(!token){setSession(null);throw Error('Sua sessão expirou. Entre novamente.');}
    const r=await fetch('/api/workspace'+path,{...init,signal:init.signal||AbortSignal.timeout(30000),headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,...init.headers}});
-   if(!r.ok){if(r.status===401){setSession(null);setError('Sua sessão expirou. Entre novamente.')}const data=await r.json().catch(()=>({detail:'Serviço indisponível.'}));throw Error(typeof data.detail==='string'?data.detail:'Confira os campos informados.')}
+   if(!r.ok){if(r.status===401){client!.forget();setSession(null);setError('Sua sessão expirou. Entre novamente.')}const data=await r.json().catch(()=>({detail:'Serviço indisponível.'}));throw Error(typeof data.detail==='string'?data.detail:'Confira os campos informados.')}
    return r;
  }
  useEffect(()=>{if(!session)return;let active=true;request('/companies').then(r=>r.json()).then(rows=>{if(active){setCompanies(rows);setCompany(previous=>{const saved=previous||localStorage.getItem('lucra-company:'+session.user.id);return rows.some((r:Row)=>r.id===saved)?saved:rows[0]?.id||''});setCompaniesLoaded(true)}}).catch(e=>{if(active)setError(e.message)});return()=>{active=false}},[session?.user.id,version]);
