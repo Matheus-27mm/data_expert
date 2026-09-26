@@ -51,3 +51,12 @@ def test_report_and_validation():
         assert 'attachment' in r.headers['content-disposition']
     assert client.get('/api/dashboard?period=invalid').status_code == 422
     assert client.get('/api/dashboard?anchor=nope').status_code == 422
+
+def test_public_demo_bounds_input_and_memoizes_pdf():
+    from backend.main import demo_pdf
+    assert client.get('/api/dashboard?anchor=1999-01-01').status_code == 422
+    assert client.get('/api/reports/pdf?anchor=2100-01-01').status_code == 422
+    demo_pdf.cache_clear()
+    for _ in range(3):
+        assert client.get('/api/reports/pdf?period=daily&anchor=2026-08-10').status_code == 200
+    assert demo_pdf.cache_info().hits == 2
