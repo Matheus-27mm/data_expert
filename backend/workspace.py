@@ -221,45 +221,37 @@ def update_record(company_id:UUID,table:str,record_id:UUID,body:dict,db:Session=
         raise HTTPException(404,'Registro não encontrado.')
     return rows[0]
 
+# Full-history balances are aggregated in PostgreSQL (one round trip, grouped
+# per entity) instead of loading every ledger row into Python.
+SETTLED = """left join (select sale_id,sum(amount)::bigint received from public.settlements where company_id=%(cid)s group by sale_id) st on st.sale_id=s.id
+left join (select sale_id,sum(amount)::bigint refunds,sum(returned_quantity)::bigint returned from public.adjustments where company_id=%(cid)s group by sale_id) a on a.sale_id=s.id"""
+
 @router.get('/{company_id}/reconciliation')
 def reconciliation(company_id:UUID,db:Session=Depends(session)):
-    with db.transaction(snapshot=True) as db:
-        db.company(str(company_id))
-        sales = db.rows('sales',str(company_id))
-        payments = db.rows('settlements',str(company_id))
-        adjustments = db.rows('adjustments',str(company_id))
-        result = []
-        for sale in sales:
-            received = sum(p['amount'] for p in payments if p['sale_id']==sale['id'])
-            refunds = sum(a['amount'] for a in adjustments if a['sale_id']==sale['id'])
-            expected = sale['revenue']-sale['card']-refunds
-            result.append({'id':sale['id'],'external_id':sale['external_id'],'product':sale['product'],
-                           'expected':expected,'received':received,'difference':received-expected,
-                           'status':'reconciled' if received==expected else 'pending' if received<expected else 'excess'})
-        return result
+    cid=str(company_id);db.company(cid)
+    rows=db.query("select s.id,s.external_id,s.product,s.revenue,s.card,coalesce(st.received,0) received,coalesce(a.refunds,0) refunds from public.sales s "+SETTLED+" where s.company_id=%(cid)s order by s.id",{'cid':cid})
+    result=[]
+    for r in rows:
+        expected=r['revenue']-r['card']-r['refunds']
+        result.append({'id':r['id'],'external_id':r['external_id'],'product':r['product'],'expected':expected,'received':r['received'],
+                       'difference':r['received']-expected,'status':'reconciled' if r['received']==expected else 'pending' if r['received']<expected else 'excess'})
+    return result
 
 @router.get('/{company_id}/inventory')
 def inventory(company_id:UUID,db:Session=Depends(session)):
-    with db.transaction(snapshot=True) as db:
-        cid=str(company_id)
-        db.company(cid)
-        movements=db.rows('stock_movements',cid)
-        return [{**p,'balance':sum(m['quantity']*(1 if m['direction']=='in' else -1)
-                  for m in movements if m['product_id']==p['id'])} for p in db.rows('products',cid)]
+    cid=str(company_id);db.company(cid)
+    return db.query("""select p.*,coalesce(m.balance,0) balance from public.products p
+left join (select product_id,sum(case direction when 'in' then quantity else -quantity end)::bigint balance from public.stock_movements where company_id=%(cid)s group by product_id) m on m.product_id=p.id
+where p.company_id=%(cid)s order by p.id""",{'cid':cid})
 
 @router.get('/{company_id}/payables')
 def payables(company_id:UUID,db:Session=Depends(session)):
-    with db.transaction(snapshot=True) as db:
-        cid=str(company_id)
-        db.company(cid)
-        payments=db.rows('bill_payments',cid)
-        result=[]
-        for bill in db.rows('bills',cid):
-            paid=sum(p['amount'] for p in payments if p['bill_id']==bill['id'])
-            balance=bill['amount']-paid
-            result.append({**bill,'paid':paid,'balance':balance,'status':
-                'paid' if balance==0 else 'overdue' if bill['due_on']<str(date.today()) else 'pending'})
-        return sorted(result,key=lambda b:b['due_on'])
+    cid=str(company_id);db.company(cid)
+    rows=db.query("""select b.*,coalesce(p.paid,0) paid from public.bills b
+left join (select bill_id,sum(amount)::bigint paid from public.bill_payments where company_id=%(cid)s group by bill_id) p on p.bill_id=b.id
+where b.company_id=%(cid)s order by b.due_on,b.id""",{'cid':cid})
+    today=str(date.today())
+    return [{**b,'balance':b['amount']-b['paid'],'status':'paid' if b['amount']==b['paid'] else 'overdue' if b['due_on']<today else 'pending'} for b in rows]
 
 def bank_preview(db,cid,content):
     """Map bank credits to sales by external ID; never guess ambiguous matches."""

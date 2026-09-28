@@ -67,9 +67,10 @@ def checkout(company_id:UUID,body:Checkout,db:Session=Depends(session)):
         for pid in sorted({r['product_id'] for r in rows}):
             tx.connection.execute('select pg_advisory_xact_lock(hashtextextended(%s,1))',(pid,))
         if body.manage_stock:
-            movements=tx.rows('stock_movements',cid)
-            for pid in {r['product_id'] for r in rows}:
-                available=sum(m['quantity']*(1 if m['direction']=='in' else -1) for m in movements if m['product_id']==pid)
+            ids=sorted({r['product_id'] for r in rows})
+            balances={m['product_id']:m['balance'] for m in tx.query("select product_id,sum(case direction when 'in' then quantity else -quantity end)::bigint balance from public.stock_movements where company_id=%s and product_id=any(%s::uuid[]) group by product_id",(cid,ids))}
+            for pid in ids:
+                available=balances.get(pid,0)
                 required=sum(r['quantity'] for r in rows if r['product_id']==pid)
                 if available<required:
                     product=next(r['product'] for r in rows if r['product_id']==pid)
@@ -117,21 +118,21 @@ def add_months(value,n):
 
 @router.get('/{company_id}/receivables')
 def receivables(company_id:UUID,db:Session=Depends(session)):
-    with db.transaction(snapshot=True) as db:
-        cid=str(company_id);db.company(cid)
-        payments=db.rows('settlements',cid);adjustments=db.rows('adjustments',cid);result=[]
-        for sale in db.rows('sales',cid):
-            refunds=sum(a['amount'] for a in adjustments if a['sale_id']==sale['id'])
-            expected=max(0,sale['revenue']-sale['card']-refunds)
-            received=sum(p['amount'] for p in payments if p['sale_id']==sale['id'])
-            remaining=received;parts=[]
-            for i in range(sale['installments']):
-                amount=expected//sale['installments']+(1 if i<expected%sale['installments'] else 0)
-                paid=min(amount,remaining);remaining-=paid
-                due=str(add_months(date.fromisoformat(sale['first_due_on']),i)) if sale.get('first_due_on') else None
-                parts.append({'number':i+1,'due_on':due,'amount':amount,'paid':paid,'balance':amount-paid})
-            result.append({**sale,'expected':expected,'received':received,'balance':max(0,expected-received),'excess':max(0,received-expected),'returned_quantity':sum(a.get('returned_quantity',0) for a in adjustments if a['sale_id']==sale['id']),'parts':parts})
-        return result
+    from .workspace import SETTLED
+    cid=str(company_id);db.company(cid);result=[]
+    rows=db.query("select s.*,coalesce(st.received,0) received,coalesce(a.refunds,0) refunds,coalesce(a.returned,0) returned_quantity from public.sales s "+SETTLED+" where s.company_id=%(cid)s order by s.id",{'cid':cid})
+    for sale in rows:
+        refunds=sale.pop('refunds')
+        expected=max(0,sale['revenue']-sale['card']-refunds)
+        received=sale['received']
+        remaining=received;parts=[]
+        for i in range(sale['installments']):
+            amount=expected//sale['installments']+(1 if i<expected%sale['installments'] else 0)
+            paid=min(amount,remaining);remaining-=paid
+            due=str(add_months(date.fromisoformat(sale['first_due_on']),i)) if sale.get('first_due_on') else None
+            parts.append({'number':i+1,'due_on':due,'amount':amount,'paid':paid,'balance':amount-paid})
+        result.append({**sale,'expected':expected,'balance':max(0,expected-received),'excess':max(0,received-expected),'parts':parts})
+    return result
 
 class StockLimits(Input):
     min_stock: int = Field(ge=0,le=1000000)

@@ -51,39 +51,20 @@ class Session:
         self.user, self.worker = user, worker
         self.connection = connection
 
-    def request(self, method, path, *, params=None, payload=None, prefer=None):
-        if path not in TABLES or (path=='report_deliveries' and not self.worker):
-            raise HTTPException(404,'Cadastro não encontrado.')
-        params = params or {}
-        table = sql.Identifier('public',path)
-        clauses, values = conditions(params)
-        where = sql.SQL(' WHERE ')+sql.SQL(' AND ').join(clauses) if clauses else sql.SQL('')
+    @contextmanager
+    def _connection(self):
+        """Reuse the transaction connection or open one; either way the RLS identity is transaction-local."""
+        with (nullcontext(self.connection) if self.connection else psycopg.connect(os.environ['DATABASE_URL'],connect_timeout=15,row_factory=dict_row)) as conn:
+            if not self.worker:
+                conn.execute('SET LOCAL ROLE lucra_app')
+                conn.execute("SELECT set_config('lucra.claims',%s,true)", (json.dumps(self.user),))
+            yield conn
+
+    @staticmethod
+    @contextmanager
+    def _errors():
         try:
-            with (nullcontext(self.connection) if self.connection else psycopg.connect(os.environ['DATABASE_URL'],connect_timeout=15,row_factory=dict_row)) as conn:
-                if not self.worker:
-                    conn.execute('SET LOCAL ROLE lucra_app')
-                    conn.execute("SELECT set_config('lucra.claims',%s,true)", (json.dumps(self.user),))
-                if method == 'GET':
-                    projection = params.get('select','*')
-                    columns = sql.SQL('*') if projection=='*' else sql.SQL(',').join(identifier(c) for c in projection.split(','))
-                    order, direction = params.get('order','id.asc').split('.')
-                    if direction not in ('asc','desc'): raise HTTPException(422,'Ordenação inválida.')
-                    query = sql.SQL('SELECT {} FROM {}').format(columns,table)+where
-                    query += sql.SQL(' ORDER BY {} {} LIMIT %s OFFSET %s').format(identifier(order),sql.SQL(direction))
-                    result = conn.execute(query,values+[int(params.get('limit',1000)),int(params.get('offset',0))]).fetchall()
-                elif method == 'POST':
-                    result = []
-                    for row in payload if isinstance(payload,list) else [payload]:
-                        keys = list(row)
-                        query = sql.SQL('INSERT INTO {} ({}) VALUES ({}) RETURNING *').format(table,sql.SQL(',').join(map(identifier,keys)),sql.SQL(',').join(sql.Placeholder() for _ in keys))
-                        result.append(conn.execute(query,[Jsonb(row[k]) if isinstance(row[k],dict) else row[k] for k in keys]).fetchone())
-                elif method == 'PATCH':
-                    if not clauses: raise HTTPException(422,'Atualização exige filtro.')
-                    assignments = sql.SQL(',').join(sql.SQL('{}=%s').format(identifier(k)) for k in payload)
-                    query = sql.SQL('UPDATE {} SET {}').format(table,assignments)+where+sql.SQL(' RETURNING *')
-                    result = conn.execute(query,list(payload.values())+values).fetchall()
-                else: raise HTTPException(405,'Operação não permitida.')
-            return serializable(result)
+            yield
         except psycopg.errors.UniqueViolation:
             raise HTTPException(409,'Registro duplicado. Confira o identificador.') from None
         except psycopg.errors.InsufficientPrivilege:
@@ -92,6 +73,44 @@ class Session:
             raise HTTPException(422,'Confira valores, vínculos e limites do lançamento.') from None
         except psycopg.Error:
             raise HTTPException(503,'Banco indisponível. Confira a conexão e as migrações Neon.') from None
+
+    def query(self, statement, params=()):
+        """Run a static, parameterized statement under the same RLS identity.
+
+        For aggregations the table-style `request` cannot express. Only pass SQL
+        literals written in code; every value goes through `params`."""
+        with self._errors(), self._connection() as conn:
+            return serializable(conn.execute(statement, params).fetchall())
+
+    def request(self, method, path, *, params=None, payload=None, prefer=None):
+        if path not in TABLES or (path=='report_deliveries' and not self.worker):
+            raise HTTPException(404,'Cadastro não encontrado.')
+        params = params or {}
+        table = sql.Identifier('public',path)
+        clauses, values = conditions(params)
+        where = sql.SQL(' WHERE ')+sql.SQL(' AND ').join(clauses) if clauses else sql.SQL('')
+        with self._errors(), self._connection() as conn:
+            if method == 'GET':
+                projection = params.get('select','*')
+                columns = sql.SQL('*') if projection=='*' else sql.SQL(',').join(identifier(c) for c in projection.split(','))
+                order, direction = params.get('order','id.asc').split('.')
+                if direction not in ('asc','desc'): raise HTTPException(422,'Ordenação inválida.')
+                query = sql.SQL('SELECT {} FROM {}').format(columns,table)+where
+                query += sql.SQL(' ORDER BY {} {} LIMIT %s OFFSET %s').format(identifier(order),sql.SQL(direction))
+                result = conn.execute(query,values+[int(params.get('limit',1000)),int(params.get('offset',0))]).fetchall()
+            elif method == 'POST':
+                result = []
+                for row in payload if isinstance(payload,list) else [payload]:
+                    keys = list(row)
+                    query = sql.SQL('INSERT INTO {} ({}) VALUES ({}) RETURNING *').format(table,sql.SQL(',').join(map(identifier,keys)),sql.SQL(',').join(sql.Placeholder() for _ in keys))
+                    result.append(conn.execute(query,[Jsonb(row[k]) if isinstance(row[k],dict) else row[k] for k in keys]).fetchone())
+            elif method == 'PATCH':
+                if not clauses: raise HTTPException(422,'Atualização exige filtro.')
+                assignments = sql.SQL(',').join(sql.SQL('{}=%s').format(identifier(k)) for k in payload)
+                query = sql.SQL('UPDATE {} SET {}').format(table,assignments)+where+sql.SQL(' RETURNING *')
+                result = conn.execute(query,list(payload.values())+values).fetchall()
+            else: raise HTTPException(405,'Operação não permitida.')
+        return serializable(result)
 
     @contextmanager
     def transaction(self, *, snapshot=False):
