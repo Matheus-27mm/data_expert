@@ -198,3 +198,25 @@ def test_sql_aggregations_reconcile_and_respect_rls(database):
     # Raw aggregation queries run under the caller's RLS identity, not the connection owner.
     assert intruder.query('select count(*)::int n from public.sales where company_id=%s',(cid,))==[{'n':0}]
     assert owner.query('select count(*)::int n from public.sales where company_id=%s',(cid,))==[{'n':1}]
+
+def test_authorship_defaults_and_least_privilege_api_role(database):
+    owner=Session('',{'id':str(uuid4())})
+    cid=owner.insert('companies',{'name':'Autoria','owner_id':owner.user['id']})['id']
+    product=owner.insert('products',{'company_id':cid,'name':'P','sku':'A1','category':'C','unit_cost':100,'unit_price':200})
+    assert product['created_by']==owner.user['id'] and product['created_at']
+    # Activate the login role only inside this disposable database.
+    with psycopg.connect(database,autocommit=True) as admin:
+        admin.execute("alter role lucra_api login password 'api-test-only'")
+    api_url=database.replace(database.split('//')[1].split('@')[0],'lucra_api:api-test-only')
+    with psycopg.connect(api_url) as conn:
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            conn.execute('select count(*) from public.products')
+    with psycopg.connect(api_url) as conn:
+        assert conn.execute('select count(*) from public.lucra_migrations').fetchone()[0]>=9
+    previous=os.environ['DATABASE_URL']
+    os.environ['DATABASE_URL']=api_url
+    try:
+        assert [p['sku'] for p in owner.rows('products',cid)]==['A1']
+        assert Session('',{'id':str(uuid4())}).rows('products',cid)==[]
+    finally:
+        os.environ['DATABASE_URL']=previous

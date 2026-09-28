@@ -12,4 +12,4 @@
 **Consequências.**
 - A identidade é *transaction-local*, compatível com o pooler em modo transação.
 - **Limitação:** uma empresa tem um único dono (`owner_id`). Equipe, contador e convites exigem uma tabela de membership e a reescrita das policies (backlog).
-- **Risco aberto:** a API conecta com a credencial de owner do banco e só rebaixa o privilégio via `SET ROLE`. O próximo passo é um role de login dedicado para a API, deixando o owner só para migrations.
+- **Risco aberto:** a API conecta com a credencial de owner do banco e só rebaixa o privilégio via `SET ROLE`. A role de login dedicada à API está em [0009](0009-role-lucra-api-e-autoria.md).
