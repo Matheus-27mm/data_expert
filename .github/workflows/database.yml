@@ -1,0 +1,34 @@
+name: Apply database migrations
+# Production schema changes run here, only after "Validate Lucra" passes on a
+# push to main — never from a developer machine. Vercel deploys the same push
+# in parallel, so every migration must stay compatible with the code already
+# running (expand first, contract in a later release). See CLAUDE.md.
+on:
+  workflow_run:
+    workflows: ['Validate Lucra']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: database-migrations
+  cancel-in-progress: false
+jobs:
+  migrate:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Require database credential
+        run: test -n "$DATABASE_URL" || { echo '::error::DATABASE_URL secret is not configured.'; exit 1; }
+      - run: pip install -r requirements.txt
+      - run: python -m scripts.migrate
