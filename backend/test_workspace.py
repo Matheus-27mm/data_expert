@@ -95,12 +95,6 @@ def test_report_recipient_bound_to_verified_user(workspace):
     assert r.json()['recipient']==db.user['email']
     assert client.post(f'/api/workspace/{CID}/records/report_schedules',json={'period':'weekly','recipient':'other@example.com'}).status_code==422
 
-def test_reconciliation(workspace):
-    client,db=workspace
-    db.tables['settlements']=[{'company_id':CID,'sale_id':SALE,'amount':17650}]
-    result=client.get(f'/api/workspace/{CID}/reconciliation').json()[0]
-    assert result['expected']==17650 and result['status']=='reconciled'
-
 def test_schedule_closed_period():
     assert due_anchor('daily',date(2026,9,18))==date(2026,9,17)
     assert due_anchor('weekly',date(2026,9,21))==date(2026,9,20)

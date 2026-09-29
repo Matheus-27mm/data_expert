@@ -14,3 +14,4 @@ consequências. Uma decisão só muda com um novo ADR que substitui o anterior.
 | [0006](0006-vendas-importadas-sao-historico.md) | Venda importada é histórico e não movimenta estoque | Aceita |
 | [0007](0007-integracao-erp-por-conector.md) | Integração com ERP por conector explícito | Aceita |
 | [0008](0008-cache-de-token-no-cliente.md) | JWT reutilizado em memória até perto da expiração | Aceita |
+| [0009](0009-role-lucra-api-e-autoria.md) | Role `lucra_api` sem privilégio próprio e autoria dos lançamentos | Aceita (ativação pendente) |

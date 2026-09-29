@@ -16,7 +16,8 @@ python -m uvicorn backend.main:app --reload --port 8000
 python -m pytest backend -q      # sem NEON_TEST_DATABASE_URL, 12 testes de RLS são pulados
 npm run build                    # tsc + vite
 npx playwright test              # exige NEON_TEST_DATABASE_URL (Postgres descartável)
-python -m scripts.migrate        # aplica neon/migrations no DATABASE_URL do ambiente
+python -m scripts.migrate        # aplica neon/migrations no DATABASE_URL do ambiente (produção: só via CI)
+python -m scripts.restore_drill  # backup + restore em banco vazio (RESTORE_DATABASE_URL) + verificação
 ```
 Postgres descartável para testes: `docker run -d --name lucra-e2e-pg -e POSTGRES_PASSWORD=local-test-only -p 127.0.0.1:55499:5432 postgres:18-alpine`
 e `NEON_TEST_DATABASE_URL=postgresql://postgres:local-test-only@127.0.0.1:55499/postgres`.
@@ -30,13 +31,15 @@ e `NEON_TEST_DATABASE_URL=postgresql://postgres:local-test-only@127.0.0.1:55499/
 
 ## Convenções
 - Migrations: novo arquivo `neon/migrations/NNN_*.sql` **e** entrada em `backend/schema.py` no mesmo commit (`test_schema.py` falha se divergirem). Migration aplicada nunca é editada (checksum em `lucra_migrations`).
-- Acesso a dados só via `Session` (`rows`, `insert`, `request`, `transaction`). Leituras com várias consultas usam `db.transaction(snapshot=True)`.
+- Acesso a dados só via `Session`: `rows`/`insert`/`request` para operações por tabela; `query(sql, params)` para agregações (SQL literal no código, valores só em `params`, mesma identidade RLS). Somas de ledger ficam no banco, não em Python. Leituras com várias consultas usam `db.transaction(snapshot=True)`.
 - Toda rota nova sob `/api/workspace/{company_id}` depende de `session`; `test_security.py` enumera as rotas privadas pela OpenAPI.
 - Estilo existente é denso (várias instruções por linha). Siga o arquivo ao editar; não reformate arquivos inteiros junto com mudanças de comportamento.
 
 ## Deploy e ambientes — atenção
-- `push` em `main` publica em produção pela integração Git da Vercel **sem esperar o CI**. Trabalhe em branch e só faça merge com CI verde.
-- Não há staging. `.env` local aponta para o **Neon de produção** com a credencial de owner: `scripts.migrate` e scripts ad hoc rodados localmente atingem produção.
+- Fluxo: branch → PR (CI + preview da Vercel em modo demo) → revisão → merge. `push` em `main` publica em produção pela Vercel imediatamente.
+- **Migrations de produção** rodam em `.github/workflows/database.yml`, só depois do CI verde num push em `main`. Como o deploy da Vercel é paralelo, toda migration precisa ser **compatível com o código em produção** (expand/contract): primeiro um PR só com o schema aditivo, depois o PR do código; remoções numa release posterior.
+- Não há staging. `.env` local aponta para o **Neon de produção** com a credencial de owner: não rode `scripts.migrate` nem scripts ad hoc com ele.
+- Backup diário (`operations.yml`) faz restore drill a cada execução; o job falha se o dump não restaurar completo.
 - O tenant "Perceptron" em produção contém dados fictícios de demonstração (24/09/2026).
 
 ## Documentação

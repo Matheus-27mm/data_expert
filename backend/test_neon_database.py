@@ -6,7 +6,7 @@ import psycopg
 import pytest
 from fastapi import HTTPException
 from backend.neon_repository import Session
-from backend.workspace import company_summary, inventory, payables, bank_preview
+from backend.workspace import company_summary, inventory, payables, bank_preview, reconciliation
 from datetime import date
 
 @pytest.fixture(scope='module')
@@ -184,3 +184,39 @@ def test_catalog_details_and_customer_update_isolation(database):
     assert db.rows('customers',cid)[0]['notes']==data['notes']
     product=db.insert('products',{'company_id':cid,**Product(name='Caneca',sku='C1',category='Casa',unit_cost=1000,unit_price=2000,notes='Embalagem individual').model_dump()})
     assert db.rows('products',cid)[0]['notes']==product['notes']
+
+def test_sql_aggregations_reconcile_and_respect_rls(database):
+    owner=Session('',{'id':str(uuid4())});intruder=Session('',{'id':str(uuid4())})
+    cid=owner.insert('companies',{'name':'Agregações','owner_id':owner.user['id']})['id']
+    sale=owner.insert('sales',{'company_id':cid,'external_id':'v1','sold_on':'2026-09-18','product':'P','category':'C','quantity':2,
+        'revenue':20000,'cmv':14000,'tax':1200,'card':2350,'commission':800,'installments':1})
+    owner.insert('adjustments',{'company_id':cid,'sale_id':sale['id'],'occurred_on':'2026-09-19','kind':'refund','amount':1650,'cost_recovered':0,'description':'Parcial'})
+    owner.insert('settlements',{'company_id':cid,'sale_id':sale['id'],'reference':'B1','received_on':'2026-09-20','amount':16000})
+    row=reconciliation(UUID(cid),owner)[0]
+    assert (row['expected'],row['received'],row['status'])==(16000,16000,'reconciled')
+    assert isinstance(row['received'],int)
+    # Raw aggregation queries run under the caller's RLS identity, not the connection owner.
+    assert intruder.query('select count(*)::int n from public.sales where company_id=%s',(cid,))==[{'n':0}]
+    assert owner.query('select count(*)::int n from public.sales where company_id=%s',(cid,))==[{'n':1}]
+
+def test_authorship_defaults_and_least_privilege_api_role(database):
+    owner=Session('',{'id':str(uuid4())})
+    cid=owner.insert('companies',{'name':'Autoria','owner_id':owner.user['id']})['id']
+    product=owner.insert('products',{'company_id':cid,'name':'P','sku':'A1','category':'C','unit_cost':100,'unit_price':200})
+    assert product['created_by']==owner.user['id'] and product['created_at']
+    # Activate the login role only inside this disposable database.
+    with psycopg.connect(database,autocommit=True) as admin:
+        admin.execute("alter role lucra_api login password 'api-test-only'")
+    api_url=database.replace(database.split('//')[1].split('@')[0],'lucra_api:api-test-only')
+    with psycopg.connect(api_url) as conn:
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            conn.execute('select count(*) from public.products')
+    with psycopg.connect(api_url) as conn:
+        assert conn.execute('select count(*) from public.lucra_migrations').fetchone()[0]>=9
+    previous=os.environ['DATABASE_URL']
+    os.environ['DATABASE_URL']=api_url
+    try:
+        assert [p['sku'] for p in owner.rows('products',cid)]==['A1']
+        assert Session('',{'id':str(uuid4())}).rows('products',cid)==[]
+    finally:
+        os.environ['DATABASE_URL']=previous
