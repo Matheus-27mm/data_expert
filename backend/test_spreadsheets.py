@@ -104,3 +104,9 @@ def test_windows_csv_and_manual_header():
     data.encoding='cp1252';data.delimiter=';';data.header_row=2
     rows,errors=parse_sheet(data)
     assert not errors and rows[0]['name']=='Café'
+
+def test_money_rejects_non_finite_negative_and_sub_cent():
+    from backend.spreadsheets import money_value
+    for bad in ['NaN','Infinity','1.001','-1','1e1000000',float('nan')]:
+        for locale in ('auto','us'):
+            with pytest.raises((ValueError,ArithmeticError)): money_value(bad,locale)

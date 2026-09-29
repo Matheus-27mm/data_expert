@@ -1,4 +1,4 @@
-﻿"""Consistent tenant snapshots; no authentication tokens or other companies."""
+"""Consistent tenant snapshots; no authentication tokens or other companies."""
 import gzip
 import hashlib
 import json
@@ -6,6 +6,7 @@ from datetime import datetime,timezone
 from uuid import UUID
 from fastapi import Depends, HTTPException, Response
 from .workspace import router, Session, session
+from .schema import LATEST
 
 BACKUP_TABLES=['products','sales','payment_terms','bills','expenses','adjustments','settlements',
  'stock_movements','bill_payments','report_history','report_schedules','action_plans','plan_updates',
@@ -16,7 +17,7 @@ def snapshot(db,cid):
     with db.transaction(snapshot=True) as tx:
         company=tx.company(cid)
         records={table:tx.rows(table,cid) for table in BACKUP_TABLES}
-    return {'format':'lucra-company','version':1,'schema_migration':'008_integrated_sales.sql',
+    return {'format':'lucra-company','version':1,'schema_migration':LATEST,
             'created_at':datetime.now(timezone.utc).isoformat(),'company':company,'records':records}
 
 

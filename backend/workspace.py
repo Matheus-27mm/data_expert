@@ -221,52 +221,6 @@ def update_record(company_id:UUID,table:str,record_id:UUID,body:dict,db:Session=
         raise HTTPException(404,'Registro não encontrado.')
     return rows[0]
 
-def parse_csv(content):
-    """CSV currency is BRL with decimal point, never locale-dependent floats."""
-    reader = csv.DictReader(io.StringIO(content.lstrip('\ufeff')))
-    required = set(Sale.model_fields)
-    if set(reader.fieldnames or []) != required:
-        raise HTTPException(422,'Cabeçalho obrigatório: '+','.join(Sale.model_fields))
-    parsed,errors,seen = [],[],set()
-    for line,row in enumerate(reader,start=2):
-        if line > 1001:
-            raise HTTPException(413,'Envie no máximo 1.000 linhas por importação.')
-        try:
-            for key in ('revenue','cmv','tax','card','commission'):
-                number = Decimal(row[key])
-                if not number.is_finite() or number < 0 or number > MONEY_MAX/100 or number.as_tuple().exponent < -2:
-                    raise ValueError('Valores monetários devem ter até duas casas decimais.')
-                row[key] = int(number*100)
-            record = Sale.model_validate(row).model_dump(mode='json')
-            if record['external_id'] in seen:
-                raise ValueError('Identificador repetido no arquivo.')
-            seen.add(record['external_id'])
-            parsed.append(record)
-        except (ValueError,TypeError,InvalidOperation):
-            errors.append({'line':line,'message':'Dados inválidos ou identificador repetido. Confira data, valores e parcelas.'})
-    if not parsed and not errors:
-        errors.append({'line':2,'message':'Arquivo sem vendas.'})
-    return parsed,errors
-
-@router.post('/{company_id}/imports/preview')
-def preview(company_id:UUID,body:CSVInput,db:Session=Depends(session)):
-    db.company(str(company_id))
-    parsed,errors = parse_csv(body.content)
-    existing = {r['external_id'] for r in db.rows('sales',str(company_id))}
-    duplicates = [r['external_id'] for r in parsed if r['external_id'] in existing]
-    return {'rows':parsed,'errors':errors,'duplicates':duplicates,'can_import':not errors and not duplicates}
-
-@router.post('/{company_id}/imports/confirm')
-def confirm(company_id:UUID,body:CSVInput,db:Session=Depends(session)):
-    # Parse again: the preview is informative, never an authorization boundary.
-    db.company(str(company_id))
-    parsed,errors = parse_csv(body.content)
-    if errors:
-        raise HTTPException(422,errors)
-    rows = [{**r,'company_id':str(company_id)} for r in parsed]
-    db.request('POST','sales',payload=rows,prefer='return=minimal')
-    return {'imported':len(rows)}
-
 @router.get('/{company_id}/reconciliation')
 def reconciliation(company_id:UUID,db:Session=Depends(session)):
     with db.transaction(snapshot=True) as db:
