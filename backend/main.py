@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from .finance import demo_sales, summarize, simulate
 from .report import report_pdf
 from .workspace import router as workspace_router
-from . import integrations, company_backup, trading
+from . import integrations, company_backup, trading, assistant
 from . import spreadsheets  # register spreadsheet routes before mounting
 from .observability import request_log
 from .security import SecurityMiddleware

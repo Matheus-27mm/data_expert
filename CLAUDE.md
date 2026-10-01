@@ -35,6 +35,11 @@ e `NEON_TEST_DATABASE_URL=postgresql://postgres:local-test-only@127.0.0.1:55499/
 - Toda rota nova sob `/api/workspace/{company_id}` depende de `session`; `test_security.py` enumera as rotas privadas pela OpenAPI.
 - Estilo existente é denso (várias instruções por linha). Siga o arquivo ao editar; não reformate arquivos inteiros junto com mudanças de comportamento.
 
+## Assistente de IA
+- `backend/assistant.py`: o dossiê (`build_dossier`) é a única fonte de dados do modelo; a IA nunca consulta o banco. Para a IA saber algo novo, amplie o dossiê e o teste.
+- Modelo e contrato de saída (`SCHEMA` + `Answer`) ficam no mesmo arquivo; `test_assistant.py` fixa o contrato da chamada. Requer `ANTHROPIC_API_KEY` só no servidor; limite em `ASSISTANT_DAILY_LIMIT`.
+- O nome do produto em textos gerados vem de `backend/brand.py`.
+
 ## Deploy e ambientes — atenção
 - Fluxo: branch → PR (CI + preview da Vercel em modo demo) → revisão → merge. `push` em `main` publica em produção pela Vercel imediatamente.
 - **Migrations de produção** rodam em `.github/workflows/database.yml`, só depois do CI verde num push em `main`. Como o deploy da Vercel é paralelo, toda migration precisa ser **compatível com o código em produção** (expand/contract): primeiro um PR só com o schema aditivo, depois o PR do código; remoções numa release posterior.
