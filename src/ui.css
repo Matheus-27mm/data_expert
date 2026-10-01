@@ -1,0 +1,35 @@
+/* Shared components (src/ui.tsx). Loaded after the page stylesheets, scoped by
+   its own class names so it does not depend on the legacy override cascade. */
+.workspace-layout .ui-metric-grid{display:grid;grid-template-columns:repeat(var(--metric-columns,4),minmax(0,1fr));gap:14px;margin:0}
+.workspace-layout .ui-metric-card{display:flex;flex-direction:column;gap:6px;min-width:0;padding:18px 20px;background:#fff;border:1px solid #e1e9e0;border-radius:14px;box-shadow:0 3px 12px #17392a08}
+.workspace-layout .ui-metric-label{display:flex;justify-content:flex-start;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#4b6658;line-height:1.3}
+.workspace-layout .ui-metric-label svg{flex:none;color:#2b674a}
+.workspace-layout .ui-metric-value{font-size:clamp(22px,2vw,30px);font-weight:650;line-height:1.15;letter-spacing:-.6px;color:#173e30;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.workspace-layout .ui-metric-hint{font-size:13px;line-height:1.4;color:#5a7265}
+.workspace-layout .ui-metric-card.is-highlight{background:linear-gradient(120deg,#173e30,#286348);border-color:#286348}
+.workspace-layout .ui-metric-card.is-highlight .ui-metric-label,.workspace-layout .ui-metric-card.is-highlight .ui-metric-label svg,.workspace-layout .ui-metric-card.is-highlight .ui-metric-hint{color:#dceadf}
+.workspace-layout .ui-metric-card.is-highlight .ui-metric-value{color:#fff}
+.workspace-layout .ui-metric-card.is-alert{border-color:#efc9c1}
+.workspace-layout .ui-metric-card.is-alert .ui-metric-value,.workspace-layout .ui-metric-card.is-alert .ui-metric-label svg{color:#a3402f}
+.workspace-layout .control-panel .ui-metric-grid{margin-bottom:20px}
+.workspace-layout .sale-editor .ui-metric-grid{margin-top:14px}
+@media(max-width:1100px){.workspace-layout .ui-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.workspace-layout .ui-metric-grid{gap:10px}.workspace-layout .ui-metric-card{padding:14px}.workspace-layout .ui-metric-value{font-size:21px}}
+
+/* Readability floor for auxiliary text in the content area (not the sidebar). */
+.workspace-body small,.workspace-body .muted,.workspace-body .daily-sub,.workspace-body .daily-note,.workspace-body .settings-caption,.workspace-body .operations-hint,.workspace-body .ui-metric-hint{font-size:13px}
+
+/* Daily chart: bars per day, estimate behind the result. */
+.trend-bars{width:100%;height:auto;display:block}
+.trend-bars .grid line{stroke:#e3ebe5}
+.trend-bars .grid text,.trend-bars .axis text{font-size:12px;fill:#5a7265}
+.trend-bars .estimate{fill:#cfe0cd}
+.trend-bars .net{fill:#1c6950}
+.trend-bars .net.is-negative{fill:#b9533f}
+.chart-legend .legend-estimate::before,.chart-legend .legend-net::before{content:'';display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.chart-legend .legend-estimate::before{background:#cfe0cd}
+.chart-legend .legend-net::before{background:#1c6950}
+.sale-pending{margin:0;font-size:13px;color:#5a7265;align-self:center}
+.secondary-action{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 16px;border:1px solid #cfdcd2;border-radius:10px;background:#fff;color:#1e4a37;font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap}
+.secondary-action:hover{border-color:#2b674a;background:#f3f8f3}
+@media(max-width:700px){.daily-toolbar .secondary-action{flex:1}}
