@@ -21,7 +21,7 @@ test('integrated sale updates stock, receipts, returns and simulator',async({pag
  await page.getByLabel('Quantidade 1',{exact:true}).fill('2');
  await page.getByRole('button',{name:'Confirmar venda',exact:true}).click();
  await expect(page.locator('.workspace-notice')).toContainText('Venda registrada');
- await page.getByRole('button',{name:'Valores a receber',exact:true}).click();
+ await page.getByRole('link',{name:'Valores a receber',exact:true}).click();
  await expect(page.getByText('R$ 360,00 em aberto',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Receber',exact:true}).click();
  await page.getByLabel('Valor recebido (R$)').fill('100');
