@@ -16,7 +16,7 @@ from . import settings  # noqa: F401
 
 TABLES = {'companies','sales','products','expenses','adjustments','settlements',
           'payment_terms','report_history','report_schedules','report_deliveries',
-          'stock_movements','bills','bill_payments','action_plans','plan_updates','customers','customer_contacts','integration_sources','import_mappings','import_jobs','source_records','company_backups'}
+          'stock_movements','bills','bill_payments','action_plans','plan_updates','customers','customer_contacts','integration_sources','import_mappings','import_jobs','source_records','company_backups','assistant_reports'}
 
 def identifier(value):
     if not re.fullmatch(r'[a-z_][a-z_0-9]*', value):

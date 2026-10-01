@@ -10,7 +10,7 @@ from .schema import LATEST
 
 BACKUP_TABLES=['products','sales','payment_terms','bills','expenses','adjustments','settlements',
  'stock_movements','bill_payments','report_history','report_schedules','action_plans','plan_updates',
- 'customers','customer_contacts','integration_sources','import_mappings','import_jobs','source_records']
+ 'customers','customer_contacts','integration_sources','import_mappings','import_jobs','source_records','assistant_reports']
 
 
 def snapshot(db,cid):
