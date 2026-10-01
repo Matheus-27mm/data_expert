@@ -18,7 +18,7 @@ from .security import SecurityMiddleware
 from .schema import MIGRATIONS
 
 api_docs = os.getenv('ENABLE_API_DOCS') == '1'
-app = FastAPI(title='Lucra API', version='1.0.0', docs_url='/api/docs' if api_docs else None, redoc_url='/api/redoc' if api_docs else None, openapi_url='/api/openapi.json' if api_docs else None)
+app = FastAPI(title='Sobrevo API', version='1.0.0', docs_url='/api/docs' if api_docs else None, redoc_url='/api/redoc' if api_docs else None, openapi_url='/api/openapi.json' if api_docs else None)
 app.middleware('http')(request_log)
 app.add_middleware(CORSMiddleware, allow_origins=['http://localhost:5173','http://127.0.0.1:5173'], allow_methods=['GET','POST','PATCH'], allow_headers=['Content-Type','Authorization'])
 app.add_middleware(SecurityMiddleware)
@@ -86,7 +86,7 @@ def simulation(body: Simulation):
 @app.get('/api/reports/pdf')
 def download_report(period: Literal['daily','weekly','monthly']='monthly', anchor: date=date(2026,8,31)):
     content = demo_pdf(period, demo_anchor(anchor))
-    return Response(content, media_type='application/pdf', headers={'Content-Disposition':f'attachment; filename="lucra-{period}-{anchor}.pdf"'})
+    return Response(content, media_type='application/pdf', headers={'Content-Disposition':f'attachment; filename="sobrevo-{period}-{anchor}.pdf"'})
 
 # Docker serves the compiled React app on the same origin as its API.
 # Vercel serves dist through its CDN and leaves this environment variable unset.

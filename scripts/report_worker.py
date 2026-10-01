@@ -43,11 +43,11 @@ def main():
             db.insert('report_history',{'company_id':schedule['company_id'],'period':schedule['period'],
                 'anchor':str(anchor),'snapshot':snapshot,'created_by':schedule['created_by']})
             message=EmailMessage()
-            message['Subject']=f"Lucra | Relatório {schedule['period']} | {anchor}"
+            message['Subject']=f"Sobrevo | Relatório {schedule['period']} | {anchor}"
             message['From']=os.environ['SMTP_FROM']
             message['To']=schedule['recipient']
-            message.set_content('Seu relatório do período encerrado está anexado. Acesse o Lucra para consultar o histórico.')
-            message.add_attachment(report_pdf(snapshot),maintype='application',subtype='pdf',filename=f'lucra-{anchor}.pdf')
+            message.set_content('Seu relatório do período encerrado está anexado. Acesse o Sobrevo para consultar o histórico.')
+            message.add_attachment(report_pdf(snapshot),maintype='application',subtype='pdf',filename=f'sobrevo-{anchor}.pdf')
             with smtplib.SMTP(os.environ['SMTP_HOST'],int(os.getenv('SMTP_PORT','587')),timeout=30) as smtp:
                 smtp.starttls(context=ssl.create_default_context())
                 smtp.login(os.environ['SMTP_USER'],os.environ['SMTP_PASSWORD'])

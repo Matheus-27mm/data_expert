@@ -1,4 +1,4 @@
-# Lucra — guia para agentes e desenvolvedores
+# Sobrevo — guia para agentes e desenvolvedores
 
 SaaS multiempresa que mostra o resultado real das vendas de pequenos varejos
 (CMV, Simples, MDR/antecipação, comissão). Produção: https://dataexpert-eight.vercel.app
@@ -19,8 +19,12 @@ npx playwright test              # exige NEON_TEST_DATABASE_URL (Postgres descar
 python -m scripts.migrate        # aplica neon/migrations no DATABASE_URL do ambiente (produção: só via CI)
 python -m scripts.restore_drill  # backup + restore em banco vazio (RESTORE_DATABASE_URL) + verificação
 ```
-Postgres descartável para testes: `docker run -d --name lucra-e2e-pg -e POSTGRES_PASSWORD=local-test-only -p 127.0.0.1:55499:5432 postgres:18-alpine`
+Postgres descartável para testes: `docker run -d --name sobrevo-e2e-pg -e POSTGRES_PASSWORD=local-test-only -p 127.0.0.1:55499:5432 postgres:18-alpine`
 e `NEON_TEST_DATABASE_URL=postgresql://postgres:local-test-only@127.0.0.1:55499/postgres`.
+
+## Nome do produto
+- A marca é **Sobrevo** (antes Lucra; ADR 0011). Logos em `public/brand/sobrevo-*.svg`; textos gerados usam `backend/brand.py`.
+- Identificadores técnicos continuam com `lucra` de propósito e **não devem ser renomeados**: roles e schema do banco (`lucra_app`, `lucra_api`, `lucra_private`, `lucra.claims`, `lucra_migrations`), migrations aplicadas, o formato `lucra-company` dos backups e as chaves `lucra-company:` do navegador.
 
 ## Invariantes que não podem ser quebradas
 - **Isolamento entre empresas** em três camadas: RLS (`SET LOCAL ROLE lucra_app` + `lucra.claims` por transação, em `neon_repository.Session`), FKs compostas `(company_id, id)` e `db.company(cid)` em toda rota. Toda tabela nova com `company_id` precisa de RLS, policies `owner_*`, FK composta e índice em `company_id`.

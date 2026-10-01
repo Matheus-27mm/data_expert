@@ -16,9 +16,9 @@ export function Login({busy,error,notice,onSubmit}:{busy:boolean;error:string;no
  function toggleVideo(){if(!video.current)return;if(video.current.paused){video.current.play().catch(()=>setPaused(true))}else video.current.pause()}
  return <main className="auth-page auth-video-page">
   <div className="auth-video-backdrop" aria-hidden="true"><video ref={video} src={financeVideo} poster="/media/finance-poster.jpg" muted loop playsInline preload="metadata" tabIndex={-1} onPlay={()=>setPaused(false)} onPause={()=>setPaused(true)} onError={()=>{setVideoAvailable(false);setPaused(true)}}/><div className="auth-video-shade"/></div>
-  <section className="auth-form-side" aria-label="Acesso ao Lucra">
+  <section className="auth-form-side" aria-label="Acesso ao Sobrevo">
    <div className="auth-form-wrap">
-    <a className="auth-brand" href="#/login" aria-label="Lucra — início"><img className="lucra-logo" src="/brand/lucra-light.svg" width="157" height="35" alt="Lucra"/></a>
+    <a className="auth-brand" href="#/login" aria-label="Sobrevo — início"><img className="brand-logo" src="/brand/sobrevo-light.svg" width="201" height="35" alt="Sobrevo"/></a>
     <h1>{mode==='login'?'Bom ter você de volta.':'Crie sua conta.'}</h1><p>{mode==='login'?'Clareza para o próximo passo da sua empresa.':'Organize os números do seu negócio.'}</p>
     <form onSubmit={e=>{e.preventDefault();const data=new FormData(e.currentTarget);onSubmit(mode,String(data.get('email')),String(data.get('password')))}}>
      <label htmlFor="auth-email">E-mail profissional</label><div className="auth-email-field"><Mail size={18} aria-hidden="true"/><input id="auth-email" name="email" type="email" autoComplete="email" placeholder="voce@empresa.com.br" required disabled={busy}/></div>

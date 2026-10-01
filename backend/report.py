@@ -21,7 +21,7 @@ def report_pdf(data):
     styles.add(ParagraphStyle(name='Cell', fontSize=9, leading=13))
     period = {'daily':'Diário', 'weekly':'Semanal', 'monthly':'Mensal'}[data['period']]
     t = data['totals']
-    story = [Paragraph('lucra.', styles['Brand']), Paragraph(f'Relatório {period} de Resultados', styles['Title']),
+    story = [Paragraph('sobrevo.', styles['Brand']), Paragraph(f'Relatório {period} de Resultados', styles['Title']),
         Paragraph(f"{escape(data.get('company','Casa Nova Store'))} | {data['start']} a {data['end']} | {'Dados demonstrativos' if data.get('source')=='demo' else 'Dados registrados pela empresa'}", styles['Muted']), Spacer(1, 6*mm)]
     summary = [['INDICADOR', 'VALOR'], ['Receita de vendas', brl(t['revenue'])], ['Custo das mercadorias (CMV)', brl(t['cmv'])],
         ['Lucro estimado (receita - CMV)', brl(t['estimated'])], ['Impostos informados', brl(t['tax'])],
@@ -54,7 +54,7 @@ def report_pdf(data):
     def footer(canvas, document):
         canvas.setFont('Helvetica',8)
         canvas.setFillColor(colors.HexColor('#64736b'))
-        canvas.drawString(18*mm,12*mm,'L U C R A  /  Clareza para decidir melhor')
+        canvas.drawString(18*mm,12*mm,'S O B R E V O  /  Clareza para decidir melhor')
         canvas.drawRightString(192*mm,12*mm,f'Página {document.page}')
     doc.build(story,onFirstPage=footer,onLaterPages=footer)
     return stream.getvalue()

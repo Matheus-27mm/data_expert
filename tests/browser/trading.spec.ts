@@ -39,7 +39,7 @@ test('integrated sale updates stock, receipts, returns and simulator',async({pag
  await page.getByLabel('Estoque mínimo').fill('10');await page.getByLabel('Estoque máximo').fill('30');
  await page.getByRole('button',{name:'Salvar',exact:true}).click();
  await expect(page.getByText('Abaixo do mínimo',{exact:true}).last()).toBeVisible();
- const download=page.waitForEvent('download');await page.getByRole('button',{name:'Exportar Excel',exact:true}).click();expect((await download).suggestedFilename()).toBe('estoque-lucra.xlsx');
+ const download=page.waitForEvent('download');await page.getByRole('button',{name:'Exportar Excel',exact:true}).click();expect((await download).suggestedFilename()).toBe('estoque-sobrevo.xlsx');
  await page.getByRole('button',{name:'Movimentações',exact:true}).click();
  await expect(page.getByRole('cell',{name:'Cliente devolveu uma unidade',exact:true})).toBeVisible();
  await page.getByRole('link',{name:'Simulador de preço',exact:true}).click();
