@@ -108,7 +108,7 @@ def assistant_pdf(record, company, start, end):
         story.append(table)
     if answer['caveats']:
         story += [Spacer(1, 4*mm), Paragraph('Limitações dos dados', styles['Heading3'])] + [Paragraph('• ' + e(c), styles['Muted']) for c in answer['caveats']]
-    story += [Spacer(1, 6*mm), Paragraph('Análise gerada por inteligência artificial a partir dos registros da empresa no sistema. Confira os números antes de decidir. '
+    story += [Spacer(1, 6*mm), Paragraph('Análise gerada automaticamente pelo ' + e(brand.NAME) + ' a partir dos registros da empresa. Confira os números antes de decidir. '
               'Não representa saldo bancário nem apuração fiscal.', styles['Muted'])]
     def footer(canvas, document):
         canvas.setFont('Helvetica', 8); canvas.setFillColor(colors.HexColor('#64736b'))
