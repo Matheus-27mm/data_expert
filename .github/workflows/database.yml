@@ -1,11 +1,11 @@
 name: Apply database migrations
-# Production schema changes run here, only after "Validate Lucra" passes on a
+# Production schema changes run here, only after "Validate Sobrevo" passes on a
 # push to main — never from a developer machine. Vercel deploys the same push
 # in parallel, so every migration must stay compatible with the code already
 # running (expand first, contract in a later release). See CLAUDE.md.
 on:
   workflow_run:
-    workflows: ['Validate Lucra']
+    workflows: ['Validate Sobrevo']
     types: [completed]
     branches: [main]
   workflow_dispatch:

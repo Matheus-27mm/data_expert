@@ -187,4 +187,4 @@ def export_inventory(company_id:UUID,format:str='xlsx',db:Session=Depends(sessio
         table.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#eaf3e5')),('VALIGN',(0,0),(-1,-1),'TOP'),('BOTTOMPADDING',(0,0),(-1,-1),8),('LINEBELOW',(0,0),(-1,-1),.3,colors.lightgrey)]))
         SimpleDocTemplate(output,pagesize=landscape(A4),leftMargin=22,rightMargin=22).build([Paragraph('Estoque — '+escape(company['name']),styles['Title']),Paragraph('Posição atual. Quantidades em unidades; valorização pelo custo atual do cadastro.',styles['BodyText']),Spacer(1,15),table])
         mime='application/pdf'
-    return Response(output.getvalue(),media_type=mime,headers={'Content-Disposition':f'attachment; filename="estoque-lucra.{format}"'})
+    return Response(output.getvalue(),media_type=mime,headers={'Content-Disposition':f'attachment; filename="estoque-sobrevo.{format}"'})

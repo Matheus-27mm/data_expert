@@ -29,13 +29,13 @@ function App(){
  const [alerts,setAlerts] = useState(false);
  useEffect(()=>{const controller=new AbortController();setLoading(true);setError('');fetch(`/api/dashboard?period=${period}&anchor=${anchor}`,{signal:controller.signal}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(setData).catch(e=>{if(e.name!=='AbortError')setError('Não foi possível carregar os dados. Verifique se a API está em execução.');}).finally(()=>{if(!controller.signal.aborted)setLoading(false)});return()=>controller.abort()},[period,anchor,retry]);
  useEffect(()=>{if(toast){const id=setTimeout(()=>setToast(''),4500);return()=>clearTimeout(id)}},[toast]);
- async function download(){setDownloading(true);try{const r=await fetch(`/api/reports/pdf?period=${period}&anchor=${anchor}`);if(!r.ok)throw Error();const url=URL.createObjectURL(await r.blob());const a=document.createElement('a');a.href=url;a.download=`lucra-${period}-${anchor}.pdf`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setToast('Seu relatório está pronto. Download iniciado.')}catch{setToast('Não foi possível gerar o PDF. Tente novamente.')}finally{setDownloading(false)}}
+ async function download(){setDownloading(true);try{const r=await fetch(`/api/reports/pdf?period=${period}&anchor=${anchor}`);if(!r.ok)throw Error();const url=URL.createObjectURL(await r.blob());const a=document.createElement('a');a.href=url;a.download=`sobrevo-${period}-${anchor}.pdf`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setToast('Seu relatório está pronto. Download iniciado.')}catch{setToast('Não foi possível gerar o PDF. Tente novamente.')}finally{setDownloading(false)}}
  const negative=data?.products.filter(p=>p.net<0)||[];
  const t=data?.totals;
  const navigate=(next:string)=>{location.hash='/demo/'+next;setPage(next);setQuery('');window.scrollTo({top:0,behavior:'smooth'})};
  return <div className="app-shell">
   <aside className="sidebar">
-   <a className="brand" href="#" onClick={e=>{e.preventDefault();navigate('overview')}}><img className="lucra-logo" src="/brand/lucra-dark.svg" width="148" height="33" alt="Lucra"/></a>
+   <a className="brand" href="#" onClick={e=>{e.preventDefault();navigate('overview')}}><img className="brand-logo" src="/brand/sobrevo-dark.svg" width="190" height="33" alt="Sobrevo"/></a>
    <div className="workspace"><span className="store-avatar">CN</span><div><b>Casa Nova Store</b><small>Seu negócio, mais claro</small></div><ChevronDown size={15}/></div>
    <div className="nav-label">WORKSPACE</div>
    <nav>{[{id:'overview',icon:LayoutDashboard,label:'Visão geral'},{id:'products',icon:Package,label:'Produtos e margens'},{id:'simulator',icon:CreditCard,label:'Simulador de preço'},{id:'reports',icon:FileText,label:'Relatórios'}].map(n=><button key={n.id} onClick={()=>navigate(n.id)} className={page===n.id?'nav-item active':'nav-item'}><n.icon size={19}/>{n.label}{page===n.id&&<span className="active-dot"/>}</button>)}</nav>

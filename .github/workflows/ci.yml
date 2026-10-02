@@ -1,4 +1,4 @@
-name: Validate Lucra
+name: Validate Sobrevo
 on: [push, pull_request]
 permissions:
   contents: read
@@ -58,12 +58,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t lucra-dashboard:ci .
-      - run: docker run -d --name lucra-ci -p 127.0.0.1:8080:8000 lucra-dashboard:ci
+      - run: docker build -t sobrevo:ci .
+      - run: docker run -d --name sobrevo-ci -p 127.0.0.1:8080:8000 sobrevo:ci
       - run: curl --retry 12 --retry-all-errors --retry-delay 5 --max-time 5 --fail http://127.0.0.1:8080/api/health
       - run: curl --fail http://127.0.0.1:8080/
       - if: failure()
-        run: docker logs lucra-ci
+        run: docker logs sobrevo-ci
   browser:
     runs-on: ubuntu-latest
     services:

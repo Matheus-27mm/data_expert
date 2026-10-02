@@ -1,10 +1,10 @@
-# Lucra — clareza para decidir melhor
+# Sobrevo — clareza para decidir melhor
 
 📋 **[Checklist de revisão e roteiro de apresentação](docs/CHECKLIST_APRESENTACAO.md)** — revisão de 23/09/2026.
 
 **Sistema web de controle financeiro e operacional para acompanhar vendas, custos, despesas, estoque, recebimentos e contas a pagar em um só lugar.**
 
-O **Lucra**, desenvolvido no repositório `data_expert`, transforma registros dispersos da empresa em uma visão organizada do que foi vendido, dos custos envolvidos, do que entrou, do que ainda precisa ser pago e do saldo de produtos em estoque. Seu objetivo é apoiar o acompanhamento diário e a tomada de decisão de pequenos negócios, sem exigir que o proprietário interprete planilhas separadas para cada atividade.
+O **Sobrevo**, desenvolvido no repositório `data_expert`, transforma registros dispersos da empresa em uma visão organizada do que foi vendido, dos custos envolvidos, do que entrou, do que ainda precisa ser pago e do saldo de produtos em estoque. Seu objetivo é apoiar o acompanhamento diário e a tomada de decisão de pequenos negócios, sem exigir que o proprietário interprete planilhas separadas para cada atividade.
 
 O sistema reúne um dashboard financeiro, cadastros de produtos e vendas, registro de despesas e recebimentos, movimentações de estoque, contas a pagar e relatórios em PDF. A análise de margem ajuda a identificar situações em que vender bastante não significa ganhar dinheiro: impostos, taxas de cartão e comissões podem consumir a diferença entre preço de venda e custo de aquisição.
 
@@ -56,7 +56,7 @@ A proposta atual é oferecer **controle básico da empresa com dados informados 
 
 Uma empresa pode apresentar bom faturamento e perder dinheiro em determinadas vendas. Considerar somente preço e custo do produto esconde o impacto de impostos, comissões e taxas do cartão, especialmente quando há antecipação de recebíveis.
 
-O Lucra responde a quatro perguntas:
+O Sobrevo responde a quatro perguntas:
 
 1. **Quanto vendemos?** Receita e quantidade de unidades no período.
 2. **Quanto parece que lucramos?** Receita menos o custo das mercadorias.
@@ -75,7 +75,7 @@ Na área da empresa, a análise também considera despesas operacionais, devolu�
 
 ### Problemas que o sistema ajuda a resolver
 
-| Situação na empresa | Como o Lucra ajuda |
+| Situação na empresa | Como o Sobrevo ajuda |
 | --- | --- |
 | O faturamento cresce, mas o resultado não acompanha | Mostra os custos e deduções que reduzem a margem |
 | Produtos vendem muito e parecem rentáveis | Aponta produtos com resultado negativo após as deduções informadas |
@@ -181,7 +181,7 @@ Os números são didáticos. Use os custos, impostos e taxas efetivos da empresa
 
 ### Identidade visual
 
-A marca Lucra usa um monograma geométrico em L, com abertura e detalhe quadrado. Os arquivos vetoriais ficam em `public/brand`: `lucra-dark.svg` para fundos claros, `lucra-light.svg` para fundos escuros, `lucra-symbol.svg` para uso isolado e `favicon.svg` para a aba do navegador. O login e os menus compartilham essas versões, sem dependência de fontes externas para desenhar a marca.
+A marca Sobrevo usa um monograma geométrico em L, com abertura e detalhe quadrado. Os arquivos vetoriais ficam em `public/brand`: `sobrevo-dark.svg` para fundos claros, `sobrevo-light.svg` para fundos escuros, `sobrevo-symbol.svg` para uso isolado e `favicon.svg` para a aba do navegador. O login e os menus compartilham essas versões, sem dependência de fontes externas para desenhar a marca.
 
 ### Análises, planos de ação e relacionamento
 
@@ -438,7 +438,7 @@ Use Docker Compose compatível com `env_file.required` (2.24 ou superior).
 - O healthcheck consulta `/api/health` a cada 30 segundos, com timeout de 5 segundos, período inicial de 15 segundos e limite de 3 falhas.
 - O Compose configura `restart: unless-stopped` e `init: true`.
 
-A imagem se chama `lucra-dashboard:local`. O mapeamento `127.0.0.1:8080:8000` permite acesso somente pela própria máquina. Não existe serviço de banco no Compose: a demonstração usa memória e a área autenticada se conecta ao Neon externo pelas variáveis do `.env`. Recriar o container não apaga os dados persistidos no Neon.
+A imagem se chama `sobrevo:local`. O mapeamento `127.0.0.1:8080:8000` permite acesso somente pela própria máquina. Não existe serviço de banco no Compose: a demonstração usa memória e a área autenticada se conecta ao Neon externo pelas variáveis do `.env`. Recriar o container não apaga os dados persistidos no Neon.
 
 > Construir a imagem local não a publica em um registry. Não há envio automático para Docker Hub ou GHCR. Hospedar em outro servidor exige configurar o destino, acesso de rede e HTTPS.
 
@@ -774,18 +774,18 @@ Entradas fora dos tipos ou limites recebem HTTP `422`, com detalhes de validaç�
 
 ```powershell
 # Docker local. Para desenvolvimento, troque 8080 por 8000.
-$lucraBaseUrl = 'http://127.0.0.1:8080'
+$sobrevoBaseUrl = 'http://127.0.0.1:8080'
 
-Invoke-RestMethod "$lucraBaseUrl/api/health"
-Invoke-RestMethod "$lucraBaseUrl/api/dashboard?period=monthly&anchor=2026-08-31"
+Invoke-RestMethod "$sobrevoBaseUrl/api/health"
+Invoke-RestMethod "$sobrevoBaseUrl/api/dashboard?period=monthly&anchor=2026-08-31"
 
-$lucraSimulation = @{
+$sobrevoSimulation = @{
     price = 200
     cost = 180
     installments = 12
 } | ConvertTo-Json
 
-Invoke-RestMethod -Method Post -Uri "$lucraBaseUrl/api/simulate" -ContentType 'application/json' -Body $lucraSimulation
+Invoke-RestMethod -Method Post -Uri "$sobrevoBaseUrl/api/simulate" -ContentType 'application/json' -Body $sobrevoSimulation
 ```
 
 ## 11. Relatórios em PDF
@@ -803,7 +803,7 @@ A rota pública de demonstração é:
 GET /api/reports/pdf?period=monthly&anchor=2026-08-31
 ```
 
-A resposta utiliza `Content-Type: application/pdf` e `Content-Disposition: attachment`. O nome segue `lucra-{period}-{anchor}.pdf`.
+A resposta utiliza `Content-Type: application/pdf` e `Content-Disposition: attachment`. O nome segue `sobrevo-{period}-{anchor}.pdf`.
 
 O documento inclui empresa e intervalo, resumo financeiro, produtos no prejuízo, comentário sobre deduções, metodologia e paginação. Na área autenticada, inclui também despesas operacionais, devoluções, CMV recuperado e resultado operacional.
 
@@ -811,7 +811,7 @@ O PDF usa os mesmos dados agregados do dashboard. Não inclui a simulação digi
 
 ```powershell
 New-Item -ItemType Directory -Force output/pdf | Out-Null
-Invoke-WebRequest -Uri 'http://127.0.0.1:8080/api/reports/pdf?period=monthly&anchor=2026-08-31' -OutFile 'output/pdf/lucra-mensal-agosto-2026.pdf'
+Invoke-WebRequest -Uri 'http://127.0.0.1:8080/api/reports/pdf?period=monthly&anchor=2026-08-31' -OutFile 'output/pdf/sobrevo-mensal-agosto-2026.pdf'
 ```
 
 ## 12. Neon e modelo de dados
@@ -1229,7 +1229,7 @@ As prioridades acordadas estão em [Prioridades do produto](docs/PRIORIDADES_PRO
 - **Já recebi o valor total** registra recebimento da receita menos cartão na data da venda. Não confunda com lucro após todos os custos. Desmarcado, o saldo permanece a receber.
 - O primeiro vencimento e o número de parcelas formam uma previsão mensal. Centavos restantes são distribuídos nas primeiras parcelas. Recebimentos são apropriados das parcelas mais antigas às mais novas. É uma previsão gerencial, sem consulta ao calendário da adquirente.
 - **Receber** na linha registra um valor parcial ou total. **Devolver / cancelar** informa quantidade e se houve recuperação da mercadoria; todas as unidades restantes cancelam o item. Para cancelar uma venda com vários itens, devolva cada item. O estoque é reposto somente quando a venda o movimentou e a reposição foi escolhida. O custo é recuperado quando a mercadoria é recuperada.
-- Taxas e impostos não são estornados automaticamente. A devolução reduz o esperado a receber; se já houve recebimento superior ao novo esperado, a tela destaca o valor a conferir/reembolsar. O Lucra não executa reembolsos bancários.
+- Taxas e impostos não são estornados automaticamente. A devolução reduz o esperado a receber; se já houve recebimento superior ao novo esperado, a tela destaca o valor a conferir/reembolsar. O Sobrevo não executa reembolsos bancários.
 - Vendas anteriores e importadas continuam válidas, sem vínculos artificiais com produtos nem baixa retroativa de estoque. Sem primeiro vencimento cadastrado, suas parcelas aparecem sem data. Ajustes antigos continuam na página Devoluções; vendas integradas usam a ação por quantidade.
 - O **Simulador de preço** está no menu da empresa e usa os mesmos produtos, condições e cálculo. Não salva venda, recebimento nem estoque.
 

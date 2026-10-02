@@ -1,4 +1,4 @@
-# Checklist de apresentação — Lucra
+# Checklist de apresentação — Sobrevo
 
 Revisão realizada em **23/09/2026**, para a apresentação de **24/09/2026**.
 
@@ -106,7 +106,7 @@ O download manual `.json.gz` não é criptografado e tem limite de 4 MB compacta
 
 ## 8. Roteiro recomendado — 10 a 15 minutos
 
-1. **Problema do cliente (1 min):** “Vender mais não significa lucrar mais. O Lucra organiza vendas, custos e despesas para mostrar o que sobra.”
+1. **Problema do cliente (1 min):** “Vender mais não significa lucrar mais. O Sobrevo organiza vendas, custos e despesas para mostrar o que sobra.”
 2. **Demonstração pronta (2 min):** abrir `/#/demo/overview`, selecionar **Mensal / 31/08/2026** e mostrar R$ 45 mil estimados versus R$ 18,2 mil após deduções.
 3. **Produtos no prejuízo e simulador (2 min):** mostrar o impacto do parcelamento e simular uma venda antes de conceder desconto.
 4. **Empresa autenticada (2 min):** mostrar Produtos, Vendas, Contas a pagar e Estoque. Usar uma empresa explicitamente criada para demonstração, evitando dados reais de clientes na projeção.

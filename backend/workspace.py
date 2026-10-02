@@ -309,4 +309,4 @@ def download(company_id:UUID,report_id:UUID,db:Session=Depends(session)):
     if not rows:
         raise HTTPException(404,'Relatório não encontrado.')
     return Response(report_pdf(rows[0]['snapshot']),media_type='application/pdf',headers={
-        'Content-Disposition':f'attachment; filename="lucra-{rows[0]["period"]}-{rows[0]["anchor"]}.pdf"'})
+        'Content-Disposition':f'attachment; filename="sobrevo-{rows[0]["period"]}-{rows[0]["anchor"]}.pdf"'})

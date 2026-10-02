@@ -41,7 +41,7 @@ def download(company_id:UUID,db:Session=Depends(session)):
     data=snapshot(db,str(company_id));content,checksum=encode_snapshot(data)
     if len(content)>4000000:
         raise HTTPException(413,'Cópia maior que o limite de download. Use o backup agendado pelo administrador.')
-    filename=f'lucra-{company_id}-{datetime.now(timezone.utc):%Y%m%dT%H%M%S}.json.gz'
+    filename=f'sobrevo-{company_id}-{datetime.now(timezone.utc):%Y%m%dT%H%M%S}.json.gz'
     record_backup(db,data,checksum,filename,'download')
     return Response(content,media_type='application/gzip',headers={
         'Content-Disposition':f'attachment; filename="{filename}"','Cache-Control':'no-store'})
