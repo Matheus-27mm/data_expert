@@ -10,9 +10,9 @@ test('assistant answers in natural language, creates a plan and exports the anal
  await expect(page.getByRole('heading',{name:'Pergunte sobre a sua empresa'})).toBeVisible();
  await page.getByRole('button',{name:'Faça um resumo executivo da empresa neste período.'}).click();
  const answer=page.getByRole('article',{name:'Resposta do assistente'});
- await expect(answer.getByRole('heading',{name:'Resumo executivo de teste'})).toBeVisible();
- await expect(answer).toContainText('A empresa Loja da IA faturou');
- await expect(page.getByRole('complementary',{name:'Análises anteriores'})).toContainText('Resumo executivo de teste');
+ await expect(answer.getByRole('heading',{name:/^Resumo executivo/})).toBeVisible();
+ await expect(answer).toContainText('Não há vendas registradas para Loja da IA');
+ await expect(page.getByRole('complementary',{name:'Análises anteriores'})).toContainText('Resumo executivo');
  expect((await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa']).analyze()).violations).toEqual([]);
  await page.screenshot({path:'output/review/assistant-1440.png',fullPage:true});
  await answer.getByRole('button',{name:'Criar plano de ação'}).click();
@@ -23,5 +23,5 @@ test('assistant answers in natural language, creates a plan and exports the anal
  await page.setViewportSize({width:360,height:800});
  await page.screenshot({path:'output/review/assistant-360.png',fullPage:true});
  await page.goto('/#/workspace/plans');
- await expect(page.getByText('Revisar preços com margem baixa')).toBeVisible();
+ await expect(page.getByText('Registrar as vendas do período')).toBeVisible();
 });

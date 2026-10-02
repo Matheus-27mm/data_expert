@@ -39,9 +39,9 @@ e `NEON_TEST_DATABASE_URL=postgresql://postgres:local-test-only@127.0.0.1:55499/
 - Toda rota nova sob `/api/workspace/{company_id}` depende de `session`; `test_security.py` enumera as rotas privadas pela OpenAPI.
 - Estilo existente é denso (várias instruções por linha). Siga o arquivo ao editar; não reformate arquivos inteiros junto com mudanças de comportamento.
 
-## Assistente de IA
-- `backend/assistant.py`: o dossiê (`build_dossier`) é a única fonte de dados do modelo; a IA nunca consulta o banco. Para a IA saber algo novo, amplie o dossiê e o teste.
-- Modelo e contrato de saída (`SCHEMA` + `Answer`) ficam no mesmo arquivo; `test_assistant.py` fixa o contrato da chamada. Requer `ANTHROPIC_API_KEY` só no servidor; limite em `ASSISTANT_DAILY_LIMIT`.
+## Assistente de análise
+- Sem serviço externo (ADR 0012). `backend/assistant.py` monta o dossiê sob RLS (`build_dossier`); `backend/insights.py` identifica os temas da pergunta e escreve a resposta por regras e modelos de frase. Para o assistente entender algo novo: tema em `TOPICS`, seção e regras em `analyze`, teste em `test_assistant.py`.
+- A resposta segue o contrato `Answer` (resumo, destaques, seções, ações, ressalvas), usado pela página e pelo PDF.
 - O nome do produto em textos gerados vem de `backend/brand.py`.
 
 ## Deploy e ambientes — atenção

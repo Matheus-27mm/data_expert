@@ -25,14 +25,3 @@ def test_session(authorization:str=Header(default='')):
     return Session('',USER)
 app.dependency_overrides[session]=test_session
 
-# Test-only: the assistant answers deterministically from the dossier, without calling the AI provider.
-from backend import assistant
-os.environ.setdefault('ANTHROPIC_API_KEY','e2e-test-only')
-def fake_ask_model(dossier,question):
-    revenue=dossier['periodo_atual']['revenue']
-    return ({'title':'Resumo executivo de teste','summary':f"A empresa {dossier['empresa']} faturou R$ {revenue:.2f} no período.",
-             'highlights':[{'label':'Receita do período','value':f'R$ {revenue:.2f}','trend':'none','note':'Sem comparação com o período anterior.'}],
-             'sections':[{'heading':'Vendas e margens','paragraphs':['Pergunta recebida: '+question],'bullets':['Registre as despesas do mês.']}],
-             'actions':[{'title':'Revisar preços com margem baixa','description':'Compare custo, taxas e preço de venda.','priority':'high'}],
-             'caveats':['Dados de teste.']},'claude-opus-5-5',100,50)
-assistant.ask_model=fake_ask_model

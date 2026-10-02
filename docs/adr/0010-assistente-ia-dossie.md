@@ -1,4 +1,4 @@
-# 0010 — Assistente de IA: dossiê no servidor e uma chamada com saída estruturada
+# 0010 — [Substituída por 0012] Assistente de IA: dossiê no servidor e uma chamada com saída estruturada
 
 **Contexto.** O dono da empresa quer perguntar em linguagem natural ("por que meu lucro caiu?") e receber uma análise que possa exportar em PDF e transformar em ações. Restrições: isolamento entre empresas (ADR 0002), função da Vercel com limite de 60 s (ADR 0003) e custo previsível.
 

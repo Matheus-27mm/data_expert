@@ -15,5 +15,5 @@ consequências. Uma decisão só muda com um novo ADR que substitui o anterior.
 | [0007](0007-integracao-erp-por-conector.md) | Integração com ERP por conector explícito | Aceita |
 | [0008](0008-cache-de-token-no-cliente.md) | JWT reutilizado em memória até perto da expiração | Aceita |
 | [0009](0009-role-lucra-api-e-autoria.md) | Role `lucra_api` sem privilégio próprio e autoria dos lançamentos | Aceita (ativação pendente) |
-| [0010](0010-assistente-ia-dossie.md) | Assistente de IA: dossiê no servidor e uma chamada com saída estruturada | Aceita |
+| [0010](0010-assistente-ia-dossie.md) | Assistente de IA: dossiê no servidor e uma chamada com saída estruturada | Substituída por 0012 |
 | [0011](0011-marca-sobrevo.md) | Marca Sobrevo, identificadores técnicos inalterados | Aceita |
