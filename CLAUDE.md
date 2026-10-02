@@ -17,6 +17,7 @@ python -m pytest backend -q      # sem NEON_TEST_DATABASE_URL, 12 testes de RLS 
 npm run build                    # tsc + vite
 npx playwright test              # exige NEON_TEST_DATABASE_URL (Postgres descartável)
 python -m scripts.migrate        # aplica neon/migrations no DATABASE_URL do ambiente (produção: só via CI)
+python -m scripts.seed_demo --owner-company Perceptron   # loja fictícia (produção: workflow demo.yml)
 python -m scripts.restore_drill  # backup + restore em banco vazio (RESTORE_DATABASE_URL) + verificação
 ```
 Postgres descartável para testes: `docker run -d --name sobrevo-e2e-pg -e POSTGRES_PASSWORD=local-test-only -p 127.0.0.1:55499:5432 postgres:18-alpine`
@@ -32,6 +33,8 @@ e `NEON_TEST_DATABASE_URL=postgresql://postgres:local-test-only@127.0.0.1:55499/
 - **Lançamentos financeiros são append-only**: `sales`, `adjustments`, `settlements`, `stock_movements`, `bill_payments` não têm UPDATE. Correção = novo lançamento.
 - **Invariantes de domínio vivem no banco** (triggers com `pg_advisory_xact_lock`): estoque ≥ 0, pagamento ≤ saldo, devolução ≤ receita/CMV, recebimento ≤ esperado.
 - Venda importada é histórico (`stock_managed=false`): não baixa estoque.
+- Conta a pagar de **compra de mercadoria para revenda** (categoria com "mercadoria" ou "revenda") não vira despesa: o custo entra no resultado como CMV na venda (migration 011).
+- Importação aceita CSV/TSV/TXT (UTF-8 ou cp1252), `.xlsx` e `.xls`; identificador ausente é gerado; venda sem CMV usa o custo do catálogo.
 
 ## Convenções
 - Migrations: novo arquivo `neon/migrations/NNN_*.sql` **e** entrada em `backend/schema.py` no mesmo commit (`test_schema.py` falha se divergirem). Migration aplicada nunca é editada (checksum em `lucra_migrations`).

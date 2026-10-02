@@ -38,10 +38,10 @@ def save_mapping(company_id:UUID,body:Mapping,db:Session=Depends(session)):
     cid=str(company_id);db.company(cid)
     if not db.rows('integration_sources',cid,id='eq.'+str(body.source_id)):
         raise HTTPException(404,'Origem não encontrada nesta empresa.')
+    from .spreadsheets import required_fields
     model=MODELS[body.kind]
-    required={k for k,v in model.model_fields.items() if v.is_required()}
+    required=required_fields(body.kind)
     provided=set(body.mapping)|set(body.options.defaults)
-    if body.options.generate_ids: provided.add('sku' if body.kind=='products' else 'external_id')
     if not required<=provided or any(k not in model.model_fields for k in body.options.defaults) or any(k not in model.model_fields or not v.strip() or len(v)>180 for k,v in body.mapping.items()):
         raise HTTPException(422,'Relacione todos os campos obrigatórios a colunas válidas.')
     return db.insert('import_mappings',{'company_id':cid,**body.model_dump(mode='json')})

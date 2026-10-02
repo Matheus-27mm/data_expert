@@ -110,3 +110,27 @@ def test_money_rejects_non_finite_negative_and_sub_cent():
     for bad in ['NaN','Infinity','1.001','-1','1e1000000',float('nan')]:
         for locale in ('auto','us'):
             with pytest.raises((ValueError,ArithmeticError)): money_value(bad,locale)
+
+def test_store_formats_without_ids_costs_or_fees():
+    import base64
+    from backend.spreadsheets import Spreadsheet, parse_sheet, catalog_index, required_fields
+    catalog = catalog_index([{'name': 'Camiseta Básica', 'sku': 'CAM-01', 'category': 'Roupas', 'unit_cost': 2000}])
+    def run(kind, filename, raw, **extra):
+        return parse_sheet(Spreadsheet(kind=kind, filename=filename, content=base64.b64encode(raw).decode(), **extra), catalog=catalog if kind == 'sales' else None)
+    rows, errors = run('sales', 'loja.csv', 'Data;Nº Venda;Produto;Qtd;Valor Total\n18/09/2026;1001;camiseta basica;2;R$ 119,80\n19-09-26;1002;Sem Cadastro;1;50\n'.encode('cp1252'))
+    assert rows == [dict(rows[0], external_id='1001', sold_on='2026-09-18', category='Roupas', cmv=4000, revenue=11980, tax=0, card=0, commission=0, installments=1)]
+    assert errors[0]['line'] == 3 and 'não está no catálogo' in errors[0]['message']
+    rows, errors = run('products', 'prod.csv', 'CÓDIGO;NOME DO PRODUTO;CATEGORIA;CUSTO UNITÁRIO (R$);PREÇO DE VENDA (R$)\n;Calça Jeans;Roupas;80;199,90\n'.encode())
+    assert not errors and rows[0]['sku'] == 'CALCA-JEANS' and rows[0]['unit_price'] == 19990
+    rows, errors = run('expenses', 'desp.csv', 'Data;Descrição;Categoria;Valor\n05/09/2026;Aluguel;Ocupação;2.500,00\n'.encode())
+    assert not errors and rows[0]['external_id'].startswith('AUTO-') and rows[0]['amount'] == 250000
+    assert 'external_id' not in required_fields('sales') and 'cmv' not in required_fields('sales')
+
+def test_legacy_xls_export():
+    import base64
+    from backend.spreadsheets import Spreadsheet, read_sheet, parse_sheet, catalog_index
+    raw = open('tests/fixtures/vendas_erp.xls', 'rb').read()
+    body = Spreadsheet(kind='sales', filename='vendas_erp.xls', content=base64.b64encode(raw).decode())
+    assert read_sheet(body, discover=True)[2] == ['Vendas']
+    rows, errors = parse_sheet(body, catalog=catalog_index([{'name': 'Camiseta Básica', 'sku': 'C1', 'category': 'Roupas', 'unit_cost': 2000}]))
+    assert rows[0]['sold_on'] == '2026-09-18' and rows[0]['external_id'] == '5001' and len(errors) == 1
