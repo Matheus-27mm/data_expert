@@ -1,0 +1,35 @@
+import {test,expect} from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+test('floating assistant answers from other pages and links to the full analysis',async({page})=>{
+ await page.route('https://auth.example.test/**',route=>route.fulfill({json:route.request().url().endsWith('/token')?{token:'browser-test-token'}:{user:{id:'dock-user',email:'dock@example.test'},session:{id:'s',expiresAt:new Date(Date.now()+3600000).toISOString()}}}));
+ const company=await(await page.request.post('/api/workspace/companies',{headers:{Authorization:'Bearer browser-test-token'},data:{name:'Loja do Painel'}})).json();
+ await page.addInitScript(id=>localStorage.setItem('lucra-company:dock-user',id),company.id);
+ await page.setViewportSize({width:1440,height:960});
+ await page.goto('/#/workspace/payables');
+ await page.getByRole('button',{name:'Perguntar ao Sobrevo'}).click();
+ const dock=page.getByRole('dialog',{name:'Assistente de análise'});
+ await expect(dock).toContainText('Você está em Contas a pagar');
+ await expect(dock.getByLabel('Sua pergunta')).toBeFocused();
+ await dock.getByRole('button',{name:'Como fica meu caixa nos próximos 30 dias?'}).click();
+ const answer=dock.getByRole('article',{name:'Resposta do assistente'});
+ await expect(answer.getByRole('heading',{name:/^Caixa dos próximos 30 dias/})).toBeVisible();
+ expect((await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa']).analyze()).violations).toEqual([]);
+ await page.screenshot({path:'output/review/assistant-dock-1440.png'});
+ await page.keyboard.press('Escape');
+ await expect(dock).toBeHidden();
+ await expect(page.getByRole('button',{name:'Perguntar ao Sobrevo'})).toBeFocused();
+ await page.getByRole('button',{name:'Perguntar ao Sobrevo'}).click();
+ await dock.getByLabel('Sua pergunta').fill('Quais produtos estão me dando prejuízo?');
+ await dock.getByRole('button',{name:'Perguntar',exact:true}).click();
+ await expect(dock.getByRole('heading',{name:/^Produtos e margens/})).toBeVisible();
+ await dock.getByRole('link',{name:'Ver análise completa'}).click();
+ await expect(page.getByRole('heading',{name:'Assistente de análise',level:1})).toBeVisible();
+ await expect(page.getByRole('article',{name:'Resposta do assistente'}).getByRole('heading',{name:/^Produtos e margens/})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Perguntar ao Sobrevo'})).toHaveCount(0);
+ await page.setViewportSize({width:360,height:800});
+ await page.goto('/#/workspace/inventory');
+ await page.getByRole('button',{name:'Perguntar ao Sobrevo'}).click();
+ await expect(dock).toContainText('Você está em Estoque');
+ await page.screenshot({path:'output/review/assistant-dock-360.png'});
+});

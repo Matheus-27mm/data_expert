@@ -11,11 +11,11 @@ ENGINE = 'sobrevo-analise-v1'
 
 TOPICS = {
     'produtos': ['prejuizo', 'margem', 'produto', 'preco', 'lucr', 'vende mais', 'mais vendido', 'ganho'],
-    'caixa': ['caixa', 'receber', 'pagar', 'vencimento', 'vence', 'fluxo', 'dinheiro', 'proximos', 'conta'],
+    'caixa': ['caixa', 'receb', 'pagar', 'vencimento', 'vence', 'vencida', 'atras', 'fluxo', 'dinheiro', 'proximos', 'contas', 'conta a pagar'],
     'comparacao': ['compar', 'anterior', 'mudou', 'cresc', 'caiu', 'queda', 'aument', 'diminu', 'evolu', 'passado'],
     'despesas': ['despesa', 'gasto', 'gastando', 'custo fixo', 'custos fixos', 'alto'],
     'estoque': ['estoque', 'repor', 'reposicao', 'saldo', 'mercadoria', 'falta'],
-    'clientes': ['cliente', 'retorno', 'atendimento', 'contato'],
+    'clientes': ['cliente', 'retorno', 'atendimento', 'contat'],
     'prioridades': ['prioriz', 'o que fazer', 'devo fazer', 'acao', 'acoes', 'melhorar', 'foco', 'focar', 'proximo passo', 'plano'],
     'resumo': ['resumo', 'geral', 'como foi', 'como esta', 'como vai', 'panorama', 'visao', 'executivo', 'situacao'],
 }

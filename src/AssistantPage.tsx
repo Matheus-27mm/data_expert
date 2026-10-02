@@ -1,7 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Sparkles,Send,FileDown,History,ListPlus,Check,Info,LoaderCircle,MessageSquareText} from 'lucide-react';
+import {Sparkles,Send,History,LoaderCircle} from 'lucide-react';
 import type {Requester,Row} from './BusinessPages';
-import {MetricGrid} from './ui';
+import {AssistantAnswer,PERIODS,when,today} from './AssistantAnswer';
 import './assistant.css';
 
 const SUGGESTIONS=[
@@ -12,39 +12,25 @@ const SUGGESTIONS=[
  'O que devo priorizar esta semana para melhorar o resultado?',
  'Minhas despesas estão altas para o que eu vendo?',
 ];
-const PERIODS:Record<string,string>={monthly:'Mensal',weekly:'Semanal',daily:'Diário'};
-const TRENDS:Record<string,string>={up:'Em alta',down:'Em queda',flat:'Estável',none:''};
-const PRIORITY:Record<string,string>={high:'Prioridade alta',medium:'Prioridade média',low:'Prioridade baixa'};
-const today=()=>new Date().toLocaleDateString('en-CA');
-const when=(v:string)=>new Date(v).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 
-export function AssistantPage({base,request}:{base:string;request:Requester}){
+/** Dedicated assistant page. `reportId` opens a stored analysis (link from the floating assistant). */
+export function AssistantPage({base,request,reportId}:{base:string;request:Requester;reportId?:string}){
  const [overview,setOverview]=useState<Row|null>(null),[report,setReport]=useState<Row|null>(null);
  const [question,setQuestion]=useState(''),[period,setPeriod]=useState('monthly'),[anchor,setAnchor]=useState(today());
- const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[planned,setPlanned]=useState<string[]>([]);
- const answerRef=useRef<HTMLElement>(null);
+ const [busy,setBusy]=useState(false),[error,setError]=useState('');
+ const answerRef=useRef<HTMLDivElement>(null);
  const load=()=>request(base+'/assistant').then(r=>r.json()).then(setOverview).catch(e=>setError(e.message));
+ const reveal=()=>setTimeout(()=>answerRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),50);
  useEffect(()=>{load()},[base]);
+ useEffect(()=>{if(reportId)open(reportId)},[base,reportId]);
  async function ask(text=question){
   const q=text.trim();if(q.length<3||busy)return;
-  setQuestion(q);setBusy(true);setError('');setNotice('');setPlanned([]);
-  try{
-   const r=await request(base+'/assistant',{method:'POST',body:JSON.stringify({question:q,period,anchor})});
-   setReport(await r.json());load();setTimeout(()=>answerRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),50);
-  }catch(e){setError((e as Error).message)}
+  setQuestion(q);setBusy(true);setError('');
+  try{const saved=await (await request(base+'/assistant',{method:'POST',body:JSON.stringify({question:q,period,anchor})})).json();setReport(saved);history.replaceState(null,'','#/workspace/assistant/'+saved.id);load();reveal()}
+  catch(e){setError((e as Error).message)}
   finally{setBusy(false)}
  }
- async function open(id:string){setError('');setNotice('');setPlanned([]);try{setReport(await (await request(base+'/assistant/'+id)).json());answerRef.current?.scrollIntoView({behavior:'smooth',block:'start'})}catch(e){setError((e as Error).message)}}
- async function exportPdf(){
-  if(!report)return;setError('');
-  try{const r=await request(base+'/assistant/'+report.id+'/pdf');const url=URL.createObjectURL(await r.blob());const a=document.createElement('a');a.href=url;a.download=`analise-${report.anchor}.pdf`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setNotice('PDF gerado. Confira a pasta de downloads.')}
-  catch(e){setError((e as Error).message)}
- }
- async function plan(action:Row){
-  try{await request(base+'/records/action_plans',{method:'POST',body:JSON.stringify({title:action.title.slice(0,160),description:action.description,priority:action.priority})});setPlanned(p=>[...p,action.title]);setNotice('Plano criado. Acompanhe em Planos de ação.')}
-  catch(e){setError((e as Error).message)}
- }
- const answer=report?.answer;
+ async function open(id:string){setError('');try{setReport(await (await request(base+'/assistant/'+id)).json());history.replaceState(null,'','#/workspace/assistant/'+id);reveal()}catch(e){setError((e as Error).message)}}
  return <section className="assistant-page" aria-busy={busy}>
   <div className="assistant-layout">
    <div className="assistant-main">
@@ -59,21 +45,12 @@ export function AssistantPage({base,request}:{base:string;request:Requester}){
       </div>
      </form>
      <div className="assistant-suggestions" aria-label="Sugestões de perguntas">{SUGGESTIONS.map(s=><button type="button" key={s} disabled={busy} onClick={()=>ask(s)}>{s}</button>)}</div>
-     <p className="assistant-quota">Pergunte sobre resumo, produtos e margens, caixa, comparação com o período anterior, despesas, estoque, clientes ou prioridades. Ctrl + Enter envia.</p>
+     <p className="assistant-quota">Pergunte sobre resumo, produtos e margens, caixa, comparação com o período anterior, despesas, estoque, clientes ou prioridades. Ctrl + Enter envia. O assistente também fica disponível nas outras telas, no botão "Perguntar ao Sobrevo".</p>
     </article>
-    {error&&<p role="alert" className="workspace-error">{error}</p>}{notice&&<p role="status" className="workspace-notice">{notice}</p>}
+    {error&&<p role="alert" className="workspace-error">{error}</p>}
     {busy&&<article className="assistant-progress" role="status"><LoaderCircle className="assistant-spin" size={22}/><div><strong>Analisando os números da empresa…</strong></div></article>}
-    {answer&&!busy&&<article className="assistant-answer" ref={answerRef} tabIndex={-1} aria-label="Resposta do assistente">
-     <header className="assistant-answer-head"><div><span className="assistant-tag"><Sparkles size={14}/> Análise automática</span><h2>{answer.title}</h2><p className="assistant-meta">{PERIODS[report!.period]} · referência {report!.anchor.split('-').reverse().join('/')} · {when(report!.created_at)}</p><p className="assistant-asked"><MessageSquareText size={15}/> {report!.question}</p></div>
-      <button className="secondary-action" onClick={exportPdf}><FileDown size={17}/>Exportar PDF</button></header>
-     <p className="assistant-summary">{answer.summary}</p>
-     {answer.highlights.length>0&&<MetricGrid label="Números-chave" items={answer.highlights.map((h:Row)=>({label:h.label,value:h.value,hint:[TRENDS[h.trend],h.note].filter(Boolean).join(' · ')}))}/>}
-     {answer.sections.map((s:Row,i:number)=><section className="assistant-section" key={i}><h3>{s.heading}</h3>{s.paragraphs.map((p:string,j:number)=><p key={j}>{p}</p>)}{s.bullets.length>0&&<ul>{s.bullets.map((b:string,j:number)=><li key={j}>{b}</li>)}</ul>}</section>)}
-     {answer.actions.length>0&&<section className="assistant-section"><h3>Próximas ações recomendadas</h3><div className="assistant-actions">{answer.actions.map((a:Row)=><article key={a.title} className={'assistant-action is-'+a.priority}><span>{PRIORITY[a.priority]}</span><strong>{a.title}</strong><p>{a.description}</p><button disabled={planned.includes(a.title)} onClick={()=>plan(a)}>{planned.includes(a.title)?<><Check size={15}/>Plano criado</>:<><ListPlus size={15}/>Criar plano de ação</>}</button></article>)}</div></section>}
-     {answer.caveats.length>0&&<aside className="assistant-caveats"><Info size={18}/><div><strong>Limitações dos dados</strong><ul>{answer.caveats.map((c:string,i:number)=><li key={i}>{c}</li>)}</ul></div></aside>}
-     <p className="assistant-disclaimer">Análise gerada automaticamente pelo Sobrevo a partir dos registros da empresa. Confira os números antes de decidir; não representa saldo bancário nem apuração fiscal.</p>
-    </article>}
-    {!answer&&!busy&&overview&&<div className="empty-state"><Sparkles size={28}/><h3>Sua primeira análise começa com uma pergunta</h3><p>Escolha uma sugestão acima ou escreva com suas palavras. A resposta pode ser exportada em PDF e virar planos de ação.</p></div>}
+    <div ref={answerRef}>{report&&!busy&&<AssistantAnswer key={report.id} report={report} base={base} request={request}/>}</div>
+    {!report&&!busy&&overview&&<div className="empty-state"><Sparkles size={28}/><h3>Sua primeira análise começa com uma pergunta</h3><p>Escolha uma sugestão acima ou escreva com suas palavras. A resposta pode ser exportada em PDF e virar planos de ação.</p></div>}
    </div>
    <aside className="assistant-history" aria-label="Análises anteriores"><h2><History size={18}/> Análises anteriores</h2>
     {!overview?<p role="status">Carregando…</p>:!overview.history.length?<p className="muted">As análises geradas ficam salvas aqui.</p>:<ol>{overview.history.map((h:Row)=><li key={h.id}><button aria-current={report?.id===h.id?'true':undefined} onClick={()=>open(h.id)}><strong>{h.title||h.question}</strong><small>{when(h.created_at)} · {PERIODS[h.period]}</small></button></li>)}</ol>}
