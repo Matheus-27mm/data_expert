@@ -63,7 +63,7 @@ test('workspace persists company, stock, bills, CSV and PDF; accessible on mobil
  await page.getByRole('button',{name:'Adicionar conta',exact:true}).click();
  await page.getByLabel('Para quem? (fornecedor)').fill('Imobiliária');
  await page.getByLabel('O que vai pagar?').fill('Aluguel');
- await page.getByLabel('Categoria',{exact:true}).fill('Fixa');
+ await page.getByRole('combobox',{name:/^Categoria/}).selectOption('Ocupação');
  await page.getByLabel('Valor da conta (R$)',{exact:true}).fill('100');
  await page.getByRole('button',{name:'Salvar',exact:true}).click();
  await expect(page.locator('.workspace-notice')).toContainText('Salvo');

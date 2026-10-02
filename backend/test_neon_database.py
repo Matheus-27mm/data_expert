@@ -77,6 +77,10 @@ def test_inventory_bills_and_bank_import(database):
     assert payables(cid,db)[0]['status']=='paid'
     assert len(db.rows('expenses',cid))==1
     assert company_summary(db,cid,'monthly',date(2026,9,18))['totals']['expenses']==10000
+    # Goods for resale are payable but reach the result only as CMV when sold.
+    db.insert('bills',{'company_id':cid,'reference':'nf-1','supplier':'Fornecedor','description':'Nota de compra','category':'Compras de mercadoria','incurred_on':'2026-09-02','due_on':'2026-10-02','amount':50000})
+    assert company_summary(db,cid,'monthly',date(2026,9,18))['totals']['expenses']==10000
+    assert any(b['reference']=='nf-1' and b['balance']==50000 for b in payables(UUID(cid),db))
     sale=db.insert('sales',{'company_id':cid,'external_id':'v1','sold_on':'2026-09-18','product':'Mug','category':'Home','quantity':1,'revenue':2000,'cmv':1000,'tax':100,'card':50,'commission':100,'installments':1})
     csv='reference,external_id,received_on,amount\nbank1,v1,2026-09-18,19.50\n'
     preview=bank_preview(db,cid,csv)

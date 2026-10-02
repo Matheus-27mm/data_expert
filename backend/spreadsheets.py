@@ -21,7 +21,22 @@ from .workspace import router, Input, Product, Sale, Expense, Session, session, 
 class ExpenseImport(Expense):
     external_id: str = Field(min_length=1,max_length=120)
 
-MODELS = {'products':Product,'sales':Sale,'expenses':ExpenseImport}
+class SaleImport(Sale):
+    """Store exports rarely carry costs and fees: missing ones default to zero,
+    category and CMV come from the catalog (see fill_from_catalog)."""
+    category: str = Field(default='',max_length=80)
+    cmv: int | None = Field(default=None,ge=0,le=MONEY_MAX)
+    tax: int = Field(default=0,ge=0,le=MONEY_MAX)
+    card: int = Field(default=0,ge=0,le=MONEY_MAX)
+    commission: int = Field(default=0,ge=0,le=MONEY_MAX)
+    installments: int = Field(default=1,ge=1,le=12)
+
+MODELS = {'products':Product,'sales':SaleImport,'expenses':ExpenseImport}
+IDENTITY = {'products':'sku','sales':'external_id','expenses':'external_id'}
+
+def required_fields(kind):
+    """Fields the user must map or fill; the identity is generated when absent."""
+    return {k for k,v in MODELS[kind].model_fields.items() if v.is_required()}-{IDENTITY[kind]}
 MONEY = {'unit_cost','unit_price','revenue','cmv','tax','card','commission','amount'}
 
 def normalized(value):
@@ -32,27 +47,30 @@ ALIASES = {
  'name':['produto','nome','descrição','nome do produto'],
  'category':['categoria','grupo','departamento'],
  'unit_cost':['custo','custo aquisição','preço de custo','custo unitário'],
- 'unit_price':['preço','preço venda','preço de venda','valor unitário'],
+ 'unit_price':['preço','preço venda','preço de venda','valor unitário','valor de venda','preço unitário','venda'],
  'notes':['observações','obs'], 'active':['ativo'],
- 'external_id':['id','referência','identificador','número da venda','código venda','id venda'],
+ 'external_id':['id','referência','identificador','número da venda','código venda','id venda','pedido','nº pedido','número do pedido','nº venda','n venda','nº','cupom','nota','nf','documento','código'],
  'sold_on':['data','data venda','data da venda'],
  'product':['produto','nome do produto','produto auto'],
- 'quantity':['quantidade','qtd','qtde'],
- 'revenue':['receita','receita total','total da venda','valor total'],
+ 'quantity':['quantidade','qtd','qtde','quant','unidades'],
+ 'revenue':['receita','receita total','total da venda','valor total','total','valor da venda','valor','faturamento'],
  'cmv':['cmv','custo mercadoria','custo mercadoria total'],
  'tax':['imposto','impostos','valor imposto'],
- 'card':['taxa cartão','valor taxa cartão'],
+ 'card':['taxa cartão','valor taxa cartão','taxa de cartão','tarifa cartão','taxa maquininha'],
  'commission':['comissão','valor comissão'],
  'installments':['parcelas','número de parcelas'],
- 'description':['descrição','histórico','despesa'],
- 'incurred_on':['data','competência','data competência','data vencimento'],
- 'amount':['valor','total','valor despesa'],
+ 'description':['descrição','histórico','despesa','descrição da despesa'],
+ 'incurred_on':['data','competência','data competência','data vencimento','data da despesa','data pagamento'],
+ 'amount':['valor','total','valor despesa','valor pago'],
 }
+
+def header_key(header):
+    return normalized(re.sub(r'\([^)]*\)|r\$|em reais','',str(header),flags=re.I))
 
 def suggest_mapping(kind,headers):
     result={}
     for field in MODELS[kind].model_fields:
-        matches=[h for h in headers if not (field in MONEY and '%' in h) and normalized(h) in {normalized(v) for v in [field,*ALIASES.get(field,[])]}]
+        matches=[h for h in headers if not (field in MONEY and '%' in h) and header_key(h) in {normalized(v) for v in [field,*ALIASES.get(field,[])]}]
         if len(matches)==1: result[field]=matches[0]
     return result
 
@@ -96,6 +114,35 @@ def money_value(value,locale):
     return int(amount*100)
 
 
+def decode_text(raw,encoding):
+    """UTF-8 first; files saved by Excel on Windows are usually cp1252."""
+    try: return raw.decode(encoding)
+    except UnicodeDecodeError:
+        if encoding!='utf-8-sig': raise
+        return raw.decode('cp1252')
+
+def read_xls(raw,selected):
+    """Legacy Excel 97-2003 (.xls), common in ERP exports. Dates become date objects."""
+    import xlrd
+    book=xlrd.open_workbook(file_contents=raw,on_demand=True)
+    try:
+        sheets=book.sheet_names()
+        sheet=book.sheet_by_name(selected or sheets[0])
+        if sheet.nrows>1051: raise ValueError('Limite de 1.000 linhas após o cabeçalho.')
+        data=[]
+        for r in range(sheet.nrows):
+            row=[]
+            for c in range(min(sheet.ncols,41)):
+                cell=sheet.cell(r,c)
+                if cell.ctype==xlrd.XL_CELL_DATE: row.append(xlrd.xldate.xldate_as_datetime(cell.value,book.datemode))
+                elif cell.ctype==xlrd.XL_CELL_EMPTY: row.append(None)
+                elif cell.ctype==xlrd.XL_CELL_NUMBER and cell.value==int(cell.value): row.append(int(cell.value))
+                else: row.append(cell.value)
+            while row and row[-1] in (None,''): row.pop()
+            data.append(row)
+        return data,sheets
+    finally: book.release_resources()
+
 def read_sheet(body, discover=False):
     if body.kind not in MODELS:
         raise HTTPException(422,'Escolha produtos, vendas ou despesas.')
@@ -103,7 +150,10 @@ def read_sheet(body, discover=False):
         raw=base64.b64decode(body.content,validate=True)
         if len(raw)>2000000: raise ValueError('Arquivo maior que 2 MB.')
         sheets=[]
-        if body.filename.lower().endswith('.xlsx'):
+        if body.filename.lower().endswith('.xls'):
+            data,sheets=read_xls(raw,body.sheet)
+            if discover: return [],[],sheets
+        elif body.filename.lower().endswith('.xlsx'):
             from openpyxl import load_workbook
             with zipfile.ZipFile(io.BytesIO(raw)) as archive:
                 if sum(f.file_size for f in archive.infolist())>20000000 or len(archive.infolist())>200:
@@ -127,8 +177,8 @@ def read_sheet(body, discover=False):
             finally:
                 book.close()
                 if cached: cached.close()
-        elif body.filename.lower().endswith(('.csv','.tsv')):
-            text=raw.decode(body.encoding)
+        elif body.filename.lower().endswith(('.csv','.tsv','.txt')):
+            text=decode_text(raw,body.encoding)
             try: dialect=csv.Sniffer().sniff(text[:4096],delimiters=',;\t')
             except csv.Error:
                 candidates={d:list(csv.reader(io.StringIO(text[:8192]),delimiter=d))[:50] for d in [',',';','\t']}
@@ -139,7 +189,7 @@ def read_sheet(body, discover=False):
             for row in reader:
                 data.append(row)
                 if len(data)>1051: raise ValueError('Limite de linhas excedido.')
-        else: raise ValueError('Use CSV UTF-8 ou Excel .xlsx.')
+        else: raise ValueError('Use CSV, TSV ou Excel (.xlsx ou .xls).')
         if len(data)<2: raise ValueError('Arquivo sem registros.')
         candidates=[i for i,r in enumerate(data[:50]) if any(v is not None and str(v).strip() for v in r)]
         start=body.header_row-1 if body.header_row else max(candidates,key=lambda i:len(suggest_mapping(body.kind,[str(v or '') for v in data[i]])),default=0)
@@ -167,7 +217,7 @@ def prepare_rows(body):
         raise HTTPException(422,'Mapeamento ou valores fixos inválidos.')
     if any(k not in fields for edit in body.corrections.values() for k in edit):
         raise HTTPException(422,'Campo de correção inválido.')
-    identity='sku' if body.kind=='products' else 'external_id'
+    identity=IDENTITY[body.kind]
     occurrences={};prepared=[]
     for row in rows:
         signature=json.dumps(dict(row),sort_keys=True,default=str,ensure_ascii=False)
@@ -177,16 +227,38 @@ def prepare_rows(body):
         values={k:row.get(v) for k,v in mapping.items()}
         for k,v in body.defaults.items():
             if values.get(k) is None or values.get(k)=='': values[k]=v
-        if body.generate_ids and not values.get(identity): values[identity]='AUTO-'+digest+'-'+str(occurrences[digest])
+        if values.get(identity) is None or not str(values.get(identity)).strip():
+            # Products get a readable code from the name; ledgers a stable hash, so re-sending the same file is detected as duplicate.
+            values[identity]=(re.sub(r'[^A-Z0-9]+','-',normalized_upper(values.get('name')))[:60].strip('-') if body.kind=='products' and values.get('name') else '') or 'AUTO-'+digest+'-'+str(occurrences[digest])
         values.update(body.corrections.get(row.line,{}))
         prepared.append((row.line,values))
     return prepared
 
-def parse_sheet(body,prepared=None):
+def normalized_upper(value):
+    return unicodedata.normalize('NFKD',str(value or '')).encode('ascii','ignore').decode().upper()
+
+def parse_date(value,order):
+    """dd/mm/aaaa, dd-mm-aaaa, dd.mm.aa or ISO; order 'mdy' for US files."""
+    text=str(value).strip().split(' ')[0]
+    if re.fullmatch(r'\d{4}-\d{2}-\d{2}',text): return text
+    parts=re.split(r'[/.-]',text)
+    if len(parts)!=3 or not all(p.isdigit() for p in parts): raise ValueError(f'Data inválida: {value}. Use DD/MM/AAAA.')
+    day,month,year=(parts if order=='dmy' else [parts[1],parts[0],parts[2]])
+    year=int(year)+(2000 if len(year)==2 else 0)
+    return date(year,int(month),int(day)).isoformat()
+
+def catalog_index(products):
+    index={}
+    for p in products:
+        index[normalized(p['name'])]=p; index[normalized(p['sku'])]=p
+    return index
+
+def parse_sheet(body,prepared=None,catalog=None):
+    """catalog (sales only): normalized name/SKU -> product, used for missing CMV and category."""
     model=MODELS[body.kind];parsed,errors,seen=[],[],set()
-    identity='sku' if body.kind=='products' else 'external_id'
+    identity=IDENTITY[body.kind]
     for number,original in (prepare_rows(body) if prepared is None else prepared):
-        values=dict(original);field=''
+        values={k:v for k,v in original.items() if not (v is None or (isinstance(v,str) and not v.strip()))};field=''
         try:
             for field,v in list(values.items()):
                 if isinstance(v,str) and v.startswith('Fórmula sem resultado:'):
@@ -197,10 +269,18 @@ def parse_sheet(body,prepared=None):
                 if field.endswith('_on'):
                     if isinstance(v,datetime): values[field]=v.date().isoformat()
                     elif isinstance(v,date): values[field]=v.isoformat()
-                    elif '/' in str(v): values[field]=datetime.strptime(str(v),'%d/%m/%Y' if body.date_format=='dmy' else '%m/%d/%Y').date().isoformat()
+                    else: values[field]=parse_date(v,body.date_format)
                 if field=='active' and isinstance(v,str) and normalized(v) in ('sim','nao','ativo','inativo'):
                     values[field]=normalized(v) in ('sim','ativo')
+            if body.kind=='sales':
+                match=(catalog or {}).get(normalized(values.get('product',''))) if catalog is not None else None
+                if match and values.get('cmv') is None: values['cmv']=match['unit_cost']*int(Decimal(str(values.get('quantity',0))))
+                if match and not values.get('category'): values['category']=match['category']
             record=model.model_validate(values).model_dump(mode='json')
+            if body.kind=='sales':
+                if record['cmv'] is None:
+                    field='cmv';raise ValueError(f"Produto \"{record['product']}\" não está no catálogo: cadastre o produto ou informe o custo (CMV) da venda.")
+                record['category']=record['category'] or 'Sem categoria'
             if record[identity] in seen:
                 field=identity;raise ValueError('Identificador repetido neste arquivo.')
             seen.add(record[identity]);parsed.append(record)
@@ -213,10 +293,10 @@ def parse_sheet(body,prepared=None):
 @router.post('/{company_id}/spreadsheets/read')
 def inspect(company_id:UUID,body:Spreadsheet,db:Session=Depends(session)):
     db.company(str(company_id))
-    headers,rows,sheets=read_sheet(body,discover=body.filename.lower().endswith('.xlsx') and not body.sheet)
+    headers,rows,sheets=read_sheet(body,discover=body.filename.lower().endswith(('.xlsx','.xls')) and not body.sheet)
     return {'headers':headers,'sample':rows[:5],'sheets':sheets,'count':len(rows),
             'header_row':body.header_row,'suggested_mapping':suggest_mapping(body.kind,headers),
-            'fields':[{'key':k,'required':v.is_required()} for k,v in MODELS[body.kind].model_fields.items()]}
+            'fields':[{'key':k,'required':k in required_fields(body.kind)} for k in MODELS[body.kind].model_fields]}
 
 @router.post('/{company_id}/spreadsheets/{operation}')
 def import_sheet(company_id:UUID,operation:str,body:Spreadsheet,db:Session=Depends(session)):
@@ -232,8 +312,8 @@ def import_sheet(company_id:UUID,operation:str,body:Spreadsheet,db:Session=Depen
     try:
         # Decode and map the workbook once; parsing and the review table share it.
         prepared=prepare_rows(body)
-        parsed,errors=parse_sheet(body,prepared)
-        identity='sku' if body.kind=='products' else 'external_id'
+        parsed,errors=parse_sheet(body,prepared,catalog_index(db.rows('products',cid)) if body.kind=='sales' else None)
+        identity=IDENTITY[body.kind]
         existing={r.get(identity) for r in db.rows(body.kind,cid)}
         duplicates=[r[identity] for r in parsed if r[identity] in existing]
         valid=bool(parsed) and not errors and not duplicates

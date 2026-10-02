@@ -1,0 +1,40 @@
+name: Create demo store
+# Creates a fictitious store with ~3 months of activity in an existing account.
+# Manual only. Refuses to run twice for the same company name in that account.
+on:
+  workflow_dispatch:
+    inputs:
+      owner_company:
+        description: Empresa existente que identifica a conta dona (ignorado se o e-mail for informado)
+        default: Perceptron
+      owner_email:
+        description: E-mail da conta dona (opcional)
+        default: ''
+      name:
+        description: Nome da loja de demonstração
+        default: Aurora Moda & Casa
+permissions:
+  contents: read
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Seed demo store
+        env:
+          OWNER_COMPANY: ${{ inputs.owner_company }}
+          OWNER_EMAIL: ${{ inputs.owner_email }}
+          STORE_NAME: ${{ inputs.name }}
+        run: |
+          if [ -n "$OWNER_EMAIL" ]; then
+            python -m scripts.seed_demo --owner-email "$OWNER_EMAIL" --name "$STORE_NAME"
+          else
+            python -m scripts.seed_demo --owner-company "$OWNER_COMPANY" --name "$STORE_NAME"
+          fi

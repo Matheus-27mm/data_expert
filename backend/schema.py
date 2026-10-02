@@ -14,5 +14,6 @@ MIGRATIONS = (
     '008_integrated_sales.sql',
     '009_audit_indexes_api_role.sql',
     '010_assistant_reports.sql',
+    '011_merchandise_purchases.sql',
 )
 LATEST = MIGRATIONS[-1]
